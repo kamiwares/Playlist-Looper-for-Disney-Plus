@@ -1,12 +1,11 @@
-// Wspólne helpery dla service workera i popupu (ES module).
-// Content script nie może importować modułów, więc ma własną, minimalną kopię odczytu.
+// Shared by the service worker and the popup.
 
 export const DEFAULT_SETTINGS = {
   loopMode: 'all', // 'all' | 'one' | 'off'
   shuffle: false,
-  creditsOffset: 0, // sekundy przed końcem, po których przechodzimy dalej
-  fullscreen: false, // okno Chrome w trybie pełnoekranowym podczas pętli
-  autoProfile: '', // nazwa profilu Netflix wybierana automatycznie przy starcie z #autostart
+  creditsOffset: 0, // seconds before the end to move on
+  fullscreen: false,
+  autoProfile: '', // profile picked on #autostart
 };
 
 export const DEFAULT_STATE = {
@@ -14,9 +13,9 @@ export const DEFAULT_STATE = {
   currentId: null,
   index: 0,
   tabId: null,
-  fullscreenWindowId: null, // okno, które wtyczka przełączyła na pełny ekran
-  prevWindowState: null, // stan okna do przywrócenia po wyjściu
-  fullscreenPaused: false, // użytkownik wyszedł z pełnego ekranu: nie wracamy do niego aż do kolejnego Startu
+  fullscreenWindowId: null, // window the extension made fullscreen
+  prevWindowState: null, // restored on exit
+  fullscreenPaused: false, // user left fullscreen: don't re-enter until the next Start
 };
 
 export const PLACEHOLDER_PREFIX = 'Netflix #';
@@ -48,14 +47,14 @@ export async function updateState(patch) {
   return next;
 }
 
-// Akceptuje pełny URL (/watch/<id> lub /title/<id>) albo samo numeryczne ID.
+// Accepts /watch/<id>, /title/<id>, ?jbv=<id> or a bare ID.
 export function parseNetflixId(input) {
   const s = String(input ?? '').trim();
   const m = s.match(/\/watch\/(\d+)/) || s.match(/\/title\/(\d+)/) || s.match(/[?&]jbv=(\d+)/) || s.match(/^(\d+)$/);
   return m ? m[1] : null;
 }
 
-// t=0 wymusza start od początku zamiast wznawiania od ostatniej pozycji.
+// t=0 starts from the beginning instead of resuming.
 export function watchUrl(id) {
   return `https://www.netflix.com/watch/${id}?t=0`;
 }

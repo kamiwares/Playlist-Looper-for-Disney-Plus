@@ -1,10 +1,8 @@
-// Content script na netflix.com. Netflix to SPA, więc skrypt działa na całej domenie
-// i sam śledzi zmiany URL oraz podmiany elementu <video>.
+// Runs on all of netflix.com (an SPA), tracking URL changes and <video> swaps itself.
 (() => {
   const PLACEHOLDER_PREFIX = 'Netflix #';
-  const t = (key, ...subs) => chrome.i18n.getMessage(key, subs.map(String)) || key; // kopia z shared/i18n.js
-  // Ekran końcowy Netflixa (następny odcinek / rekomendacje). Selektory mogą się zmienić,
-  // dlatego to tylko dodatkowy sygnał obok 'ended' i zmiany URL.
+  const t = (key, ...subs) => chrome.i18n.getMessage(key, subs.map(String)) || key; // copy of shared/i18n.js
+  // Netflix post-play screen. Selectors may change, so it's only an extra end signal.
   const POSTPLAY_SELECTOR = [
     '[data-uia="next-episode-seamless-button"]',
     '[data-uia="next-episode-seamless-button-draining"]',
@@ -12,19 +10,19 @@
     '[data-uia^="postplay"]',
   ].join(',');
   const MIN_WATCHED_SECONDS = 5;
-  // Watchdog ładowania: Netflix czasem zawiesza się na czarnym ekranie lub kółku ładowania.
-  const PLAY_NUDGE_MS = 12000; // po tym czasie próbujemy wywołać play()
-  const RELOAD_MS = 25000; // po tym czasie przeładowujemy stronę
-  const MAX_RELOADS = 3; // potem pomijamy pozycję
-  // „Czy nadal oglądasz?”: selektor może się zmienić, wtedy watchdog i tak przeładuje stronę.
+  // Loading watchdog: Netflix sometimes hangs on a black screen or a spinner.
+  const PLAY_NUDGE_MS = 12000; // then try play()
+  const RELOAD_MS = 25000; // then reload
+  const MAX_RELOADS = 3; // then skip the item
+  // "Are you still watching?" (if this breaks, the watchdog reloads anyway).
   const CONTINUE_SELECTOR = '[data-uia="interrupt-autoplay-continue"]';
 
   let playlist = [];
   let settings = { loopMode: 'all', shuffle: false, creditsOffset: 0 };
   let state = { active: false, currentId: null, tabId: null };
   let myTabId = null;
-  let notice = null; // ostatni komunikat od service workera: {text, tabId, at}
-  let settingsLoaded = false; // autostart czeka na ustawienia (nazwę profilu)
+  let notice = null; // latest notice: {text, icon, tabId, at}
+  let settingsLoaded = false; // autostart waits for the profile name
 
   let lastId = null;
   let video = null;
@@ -40,9 +38,8 @@
   let observer = null;
   let dead = false;
 
-  // Po przeładowaniu lub aktualizacji wtyczki stary skrypt zostaje w otwartej karcie, ale traci
-  // połączenie z wtyczką. Wtedy chrome.runtime.sendMessage rzuca „Extension context invalidated”
-  // synchronicznie, więc .catch() tego nie łapie. Taki osierocony skrypt sam się wyłącza.
+  // After an extension reload this script is orphaned and sendMessage throws synchronously
+  // ("Extension context invalidated"), so it shuts itself down.
   function alive() {
     return !dead && !!chrome.runtime?.id;
   }
@@ -121,8 +118,7 @@
   }
 
   function onIdChange(prev, next) {
-    // Netflix sam przeszedł dalej (autoodtwarzanie następnego odcinka albo powrót do /browse)
-    // po obejrzeniu prawie całości: traktujemy to jako koniec pozycji z playlisty.
+    // Netflix moved on by itself (autoplay or back to /browse) near the end: treat as ended.
     if (prev && next !== prev && maxRatio > 0.85 && endedSentFor !== prev) sendEnded(prev);
     maxRatio = 0;
     watchedSeconds = 0;
@@ -137,9 +133,8 @@
     return `nlp-reloads-${id}`;
   }
 
-  // Na karcie pętli pilnuje, żeby film faktycznie ruszył: najpierw próbuje play(),
-  // potem przeładowuje stronę, a po MAX_RELOADS nieudanych próbach przechodzi dalej.
-  // Licznik prób trzyma w sessionStorage, bo przeżywa on przeładowanie karty.
+  // On the loop tab: nudge play(), then reload, then skip after MAX_RELOADS.
+  // The reload counter lives in sessionStorage to survive reloads.
   function watchdog(id) {
     const cont = document.querySelector(CONTINUE_SELECTOR);
     if (cont && isLoopTabFor(id)) cont.click();
@@ -151,7 +146,7 @@
       return;
     }
     if (!isLoopTabFor(id)) {
-      loadStartedAt = Date.now(); // nie liczymy czasu, zanim wiadomo, że to karta pętli
+      loadStartedAt = Date.now(); // not the loop tab (yet): don't count
       return;
     }
 
@@ -181,7 +176,7 @@
 
     if (lastTime != null && !v.paused) {
       const delta = v.currentTime - lastTime;
-      if (delta > 0 && delta < 2) watchedSeconds += delta; // pomijamy przewijanie
+      if (delta > 0 && delta < 2) watchedSeconds += delta; // ignore seeks
     }
     lastTime = v.currentTime;
     maxRatio = Math.max(maxRatio, v.currentTime / v.duration);
@@ -192,7 +187,7 @@
 
     if (enoughWatched && remaining <= threshold) sendEnded(id);
     else if (enoughWatched && maxRatio > 0.8 && document.querySelector(POSTPLAY_SELECTOR)) sendEnded(id);
-    else if (remaining > threshold + 5 && endedSentFor === id) endedSentFor = null; // ktoś przewinął wstecz
+    else if (remaining > threshold + 5 && endedSentFor === id) endedSentFor = null; // seeked back
   }
 
   function attach(v) {
@@ -221,16 +216,16 @@
         await chrome.storage.local.set({ playlist: fresh });
       }
     } catch {
-      teardown(); // kontekst wtyczki unieważniony w trakcie zapisu
+      teardown(); // context invalidated mid-write
     }
   }
 
-  // ---------- Autostart z linku z #autostart ----------
-  // autostart.js zapisuje znacznik w sessionStorage. Wartość 'clicked' oznacza, że profil został
-  // już wybrany (Netflix mógł przy tym przeładować stronę). Znacznik usuwamy dopiero przy starcie pętli.
+  // ---------- Autostart (#autostart) ----------
+  // Marker set by autostart.js; 'clicked' means the profile was already picked
+  // (Netflix may have reloaded). Cleared only when the loop starts.
   const AUTOSTART_KEY = 'nlp-autostart';
-  const PROFILE_WAIT_MS = 6000; // tyle czekamy, aż Netflix pokaże ekran „Kto ogląda?”
-  const AFTER_PROFILE_MS = 2500; // po kliknięciu profilu dajemy Netflixowi chwilę na przełączenie
+  const PROFILE_WAIT_MS = 6000; // wait for "Who's watching?"
+  const AFTER_PROFILE_MS = 2500; // let Netflix switch profiles
   const autostartAt = Date.now();
   let profileClickedAt = 0;
 
@@ -239,8 +234,8 @@
     return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
   }
 
-  // Szuka widocznego elementu z dokładnie tą nazwą profilu. Nie opieramy się na klasach CSS Netflixa,
-  // bo często się zmieniają; ukryte menu konta (też z nazwami profili) odpada przez isVisible().
+  // Match visible elements by name rather than Netflix CSS classes (they change often);
+  // isVisible() skips the hidden account menu.
   function findProfile(name) {
     const target = name.toLocaleLowerCase();
     for (const el of document.querySelectorAll('a, button, [role="link"], [role="button"], span, p')) {
@@ -290,7 +285,7 @@
     updateUi();
   }
 
-  // ---------- Pływający panel na stronie odtwarzacza ----------
+  // ---------- On-page controls ----------
   const root = document.createElement('div');
   root.id = 'nlp-root';
   const ICON = '<span class="nlp-icon" aria-hidden="true"></span><span class="nlp-label"></span>';
@@ -303,13 +298,12 @@
   const addBtn = root.querySelector('.nlp-add');
   let hideTimer = null;
 
-  // Ikony Font Awesome Free (icons/fa/*.svg) jako maska CSS; kopia setIcon() z shared/icons.js.
-  // Pliki są w web_accessible_resources, bo maskę ładuje strona netflix.com.
+  // Copy of shared/icons.js; icon files are web-accessible for netflix.com.
   function setIcon(el, name) {
     el.style.setProperty('--nlp-icon', `url("${chrome.runtime.getURL(`icons/fa/${name}.svg`)}")`);
   }
 
-  // Ustawia ikonę i tekst elementu zbudowanego z ICON; ikonę podmienia tylko przy zmianie.
+  // Sets icon and label; the icon is swapped only when it changes.
   function setContent(el, iconName, text) {
     const icon = el.querySelector('.nlp-icon');
     if (icon.dataset.icon !== iconName) {
@@ -325,7 +319,7 @@
     await send({ type: 'ADD', id, title: readTitle() || titleCache[id] });
   });
 
-  // Pełny ekran strony (np. przycisk Netflixa) albo całego okna (F11 lub wtyczka).
+  // Page fullscreen (Netflix button) or window fullscreen (F11 / extension).
   function isFullscreen() {
     return !!document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches;
   }
@@ -337,13 +331,13 @@
   }
 
   fsBtn.addEventListener('click', () => {
-    // Pełny ekran samej strony wyłączamy lokalnie; okno przełącza service worker,
-    // bo pełny ekran okna przetrwa przejście do kolejnego filmu.
+    // Page fullscreen exits locally; window fullscreen goes through the service worker
+    // so it survives navigation to the next item.
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else send({ type: 'TOGGLE_FULLSCREEN' });
   });
 
-  // Element musi być wewnątrz elementu pełnoekranowego, inaczej znika w pełnym ekranie Netflixa.
+  // Must live inside the fullscreen element to stay visible.
   function mountInPlayer(el) {
     const fs = document.fullscreenElement;
     const host = fs && fs.tagName !== 'VIDEO' ? fs : document.body;
@@ -355,8 +349,8 @@
     if (toast.isConnected) mountInPlayer(toast);
   }
 
-  // ---------- Komunikaty na stronie („Pominięto…”, „Koniec playlisty”) ----------
-  const NOTICE_MAX_AGE_MS = 15000; // starszych nie pokazujemy (np. po ręcznym odświeżeniu karty później)
+  // ---------- On-page notices ----------
+  const NOTICE_MAX_AGE_MS = 15000; // ignore stale notices
   const TOAST_MS = 6000;
   const toast = document.createElement('div');
   toast.id = 'nlp-toast';
@@ -367,7 +361,7 @@
   function showToast(text, iconName) {
     setContent(toast, iconName, text);
     mountInPlayer(toast);
-    void toast.offsetWidth; // restart przejścia przy kolejnym komunikacie
+    void toast.offsetWidth; // restart the transition
     toast.classList.add('nlp-toast-visible');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
@@ -376,8 +370,7 @@
     }, TOAST_MS);
   }
 
-  // Pokazuje komunikat raz, tylko na karcie, do której był skierowany. sessionStorage chroni
-  // przed ponownym pokazaniem po przeładowaniu karty (np. przez watchdog).
+  // Show each notice once, on its target tab only; sessionStorage survives watchdog reloads.
   function maybeShowNotice() {
     if (!notice || myTabId == null || notice.tabId !== myTabId) return;
     if (Date.now() - notice.at > NOTICE_MAX_AGE_MS) return;
@@ -414,7 +407,7 @@
     updateFsBtn();
   }
 
-  // W pełnym ekranie okna (chrome.windows) Esc nie działa domyślnie, więc obsługujemy go sami.
+  // Esc doesn't exit window fullscreen (chrome.windows) by default.
   document.addEventListener(
     'keydown',
     (e) => {

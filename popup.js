@@ -8,12 +8,11 @@ const tpl = $('#item-tpl');
 const statusEl = $('#status');
 
 let data = { playlist: [], settings: {}, state: {} };
-let activeTab = null; // aktywna karta, jeśli to odtwarzacz Netflixa
+let activeTab = null; // active tab, if it's a Netflix player
 let editing = false;
 let dragFrom = null;
 let statusTimer = null;
 
-// Komunikat znika sam: zwykły po 4 s, błąd po 6 s, żeby zdążyć go przeczytać.
 function setStatus(text, isError = false) {
   statusEl.textContent = text || '';
   statusEl.classList.toggle('error', isError);
@@ -28,7 +27,7 @@ async function send(msg) {
 }
 
 function move(from, to) {
-  // `to` to indeks wstawienia w tablicy przed usunięciem elementu.
+  // `to` is the insertion index before removal.
   const pl = [...data.playlist];
   const [item] = pl.splice(from, 1);
   if (to > from) to--;
@@ -137,7 +136,7 @@ function renderList() {
 }
 
 function render() {
-  if (editing) return; // nie niszczymy pola edycji przy zmianach z innych źródeł
+  if (editing) return; // don't wipe an open title editor
   const { playlist, settings, state } = data;
   renderList();
 
@@ -172,7 +171,6 @@ async function addById(id, title) {
   return res;
 }
 
-// ---------- Zdarzenia ----------
 $('#toggle').addEventListener('click', () => {
   setStatus('');
   send(data.state.active ? { type: 'STOP' } : { type: 'START', tabId: activeTab?.id });
@@ -188,7 +186,7 @@ $('#add-current').addEventListener('click', async () => {
     const res = await chrome.tabs.sendMessage(activeTab.id, { type: 'GET_CURRENT' });
     title = res?.title;
   } catch {
-    // karta mogła zostać otwarta przed instalacją wtyczki: tytuł uzupełni się później
+    // tab opened before install: the title fills in later
   }
   addById(id, title);
 });
@@ -210,7 +208,7 @@ $('#shuffle').addEventListener('change', (e) => updateSettings({ shuffle: e.targ
 $('#fullscreen').addEventListener('change', (e) => updateSettings({ fullscreen: e.target.checked }));
 let profileTimer = null;
 $('#autoProfile').addEventListener('input', (e) => {
-  // Zapis z krótkim opóźnieniem przy pisaniu, żeby wartość nie przepadła po zamknięciu popupu.
+  // Debounced, so the value survives closing the popup.
   clearTimeout(profileTimer);
   profileTimer = setTimeout(() => updateSettings({ autoProfile: e.target.value.trim() }), 300);
 });
@@ -275,7 +273,7 @@ chrome.storage.onChanged.addListener((_changes, area) => {
 document.documentElement.lang = chrome.i18n.getUILanguage();
 $('#version').textContent = `v${chrome.runtime.getManifest().version}`;
 localize();
-localize(tpl.content); // szablon pozycji listy, zanim zostanie sklonowany
+localize(tpl.content);
 applyIcons();
 applyIcons(tpl.content);
 
