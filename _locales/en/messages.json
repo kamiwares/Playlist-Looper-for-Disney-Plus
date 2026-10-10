@@ -20,10 +20,10 @@
   "modeOff": { "message": "Play once and stop" },
   "shuffle": { "message": "Shuffle" },
   "fullscreenOption": { "message": "Fullscreen during the loop" },
-  "fullscreenHint": { "message": "After Start, the whole window goes fullscreen and stays that way between titles. You can also toggle it at any time with the “Fullscreen” button on the player page. Esc turns it off until the next Start." },
+  "autoProfileLabel": { "message": "Netflix profile for autostart" },
+  "autoProfilePlaceholder": { "message": "Profile name, e.g. Kamil" },
   "skipBefore": { "message": "Move on" },
   "skipAfter": { "message": "s before the end" },
-  "skipHint": { "message": "0 = play to the very end. E.g. 60 to skip the end credits." },
 
   "backup": { "message": "Backup" },
   "backupPlaceholder": { "message": "Playlist JSON" },

@@ -40,9 +40,10 @@
     </label>
     <label class="row"><input type="checkbox" id="shuffle"> <span data-i18n="shuffle">Shuffle</span></label>
     <label class="row"><input type="checkbox" id="fullscreen"> <span data-i18n="fullscreenOption">Fullscreen during the loop</span></label>
-    <small data-i18n="fullscreenHint"></small>
+    <label><span data-i18n="autoProfileLabel">Netflix profile for autostart</span>
+      <input type="text" id="autoProfile" data-i18n-placeholder="autoProfilePlaceholder" autocomplete="off">
+    </label>
     <label><span data-i18n="skipBefore">Move on</span> <input type="number" id="creditsOffset" min="0" max="900" step="1"> <span data-i18n="skipAfter">s before the end</span>
-      <small data-i18n="skipHint"></small>
     </label>
   </details>
 

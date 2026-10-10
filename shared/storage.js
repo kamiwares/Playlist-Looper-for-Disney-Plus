@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS = {
   shuffle: false,
   creditsOffset: 0, // sekundy przed końcem, po których przechodzimy dalej
   fullscreen: false, // okno Chrome w trybie pełnoekranowym podczas pętli
+  autoProfile: '', // nazwa profilu Netflix wybierana automatycznie przy starcie z #autostart
 };
 
 export const DEFAULT_STATE = {

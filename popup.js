@@ -151,6 +151,7 @@ function render() {
   $('#shuffle').checked = settings.shuffle;
   $('#fullscreen').checked = settings.fullscreen;
   if (document.activeElement !== $('#creditsOffset')) $('#creditsOffset').value = settings.creditsOffset;
+  if (document.activeElement !== $('#autoProfile')) $('#autoProfile').value = settings.autoProfile;
 
   const addCurrent = $('#add-current');
   const currentId = activeTab ? parseNetflixId(activeTab.url) : null;
@@ -207,6 +208,12 @@ $('#add-form').addEventListener('submit', async (e) => {
 $('#loopMode').addEventListener('change', (e) => updateSettings({ loopMode: e.target.value }));
 $('#shuffle').addEventListener('change', (e) => updateSettings({ shuffle: e.target.checked }));
 $('#fullscreen').addEventListener('change', (e) => updateSettings({ fullscreen: e.target.checked }));
+let profileTimer = null;
+$('#autoProfile').addEventListener('input', (e) => {
+  // Zapis z krótkim opóźnieniem przy pisaniu, żeby wartość nie przepadła po zamknięciu popupu.
+  clearTimeout(profileTimer);
+  profileTimer = setTimeout(() => updateSettings({ autoProfile: e.target.value.trim() }), 300);
+});
 $('#creditsOffset').addEventListener('change', (e) => {
   const v = Math.max(0, Math.min(900, Math.round(Number(e.target.value) || 0)));
   e.target.value = v;

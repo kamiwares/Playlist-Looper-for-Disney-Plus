@@ -20,10 +20,10 @@
   "modeOff": { "message": "Odtwórz raz i zatrzymaj" },
   "shuffle": { "message": "Kolejność losowa" },
   "fullscreenOption": { "message": "Pełny ekran podczas pętli" },
-  "fullscreenHint": { "message": "Po Starcie całe okno przechodzi w pełny ekran i zostaje w nim między filmami. Pełny ekran możesz też w każdej chwili włączyć lub wyłączyć przyciskiem „Pełny ekran” na stronie odtwarzacza. Esc wyłącza go do kolejnego Startu." },
+  "autoProfileLabel": { "message": "Profil Netflix przy autostarcie" },
+  "autoProfilePlaceholder": { "message": "Nazwa profilu, np. Kamil" },
   "skipBefore": { "message": "Przejdź dalej" },
   "skipAfter": { "message": "s przed końcem" },
-  "skipHint": { "message": "0 = do samego końca. Np. 60, żeby pomijać napisy końcowe." },
 
   "backup": { "message": "Kopia zapasowa" },
   "backupPlaceholder": { "message": "JSON playlisty" },
