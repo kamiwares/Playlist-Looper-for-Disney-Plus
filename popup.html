@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>Netflix Loop Playlist</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>⟳ Loop Playlist</h1>
+    <div class="controls">
+      <button id="prev" title="Poprzedni">⏮</button>
+      <button id="toggle" class="primary">▶ Start</button>
+      <button id="next" title="Następny">⏭</button>
+    </div>
+  </header>
+
+  <section class="add">
+    <button id="add-current" disabled>+ Dodaj bieżący film</button>
+    <form id="add-form">
+      <input id="add-input" placeholder="Link Netflix lub ID, np. 80100172" autocomplete="off">
+      <button type="submit">Dodaj</button>
+    </form>
+  </section>
+
+  <p id="status" role="status"></p>
+
+  <ol id="list"></ol>
+  <p id="empty" hidden>Playlista jest pusta. Otwórz film na Netflixie i kliknij „Dodaj bieżący film”.</p>
+
+  <details>
+    <summary>Ustawienia</summary>
+    <label>Tryb
+      <select id="loopMode">
+        <option value="all">Zapętlaj całą listę</option>
+        <option value="one">Zapętlaj jedną pozycję</option>
+        <option value="off">Odtwórz raz i zatrzymaj</option>
+      </select>
+    </label>
+    <label class="row"><input type="checkbox" id="shuffle"> Kolejność losowa</label>
+    <label>Przejdź dalej <input type="number" id="creditsOffset" min="0" max="900" step="1"> s przed końcem
+      <small>0 = do samego końca. Np. 60, żeby pomijać napisy końcowe.</small>
+    </label>
+  </details>
+
+  <details>
+    <summary>Kopia zapasowa</summary>
+    <textarea id="io" rows="5" placeholder="JSON playlisty"></textarea>
+    <div class="row">
+      <button id="export">Eksportuj</button>
+      <button id="import">Importuj (zastąp)</button>
+      <button id="clear" class="danger">Wyczyść listę</button>
+    </div>
+  </details>
+
+  <template id="item-tpl">
+    <li draggable="true">
+      <span class="handle" title="Przeciągnij">⠿</span>
+      <span class="num"></span>
+      <span class="title"></span>
+      <span class="actions">
+        <button class="up" title="W górę">↑</button>
+        <button class="down" title="W dół">↓</button>
+        <button class="edit" title="Zmień nazwę">✎</button>
+        <button class="del" title="Usuń">✕</button>
+      </span>
+    </li>
+  </template>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
