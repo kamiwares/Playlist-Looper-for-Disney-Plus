@@ -11,6 +11,12 @@
     '[data-uia^="postplay"]',
   ].join(',');
   const MIN_WATCHED_SECONDS = 5;
+  // Watchdog ładowania: Netflix czasem zawiesza się na czarnym ekranie lub kółku ładowania.
+  const PLAY_NUDGE_MS = 12000; // po tym czasie próbujemy wywołać play()
+  const RELOAD_MS = 25000; // po tym czasie przeładowujemy stronę
+  const MAX_RELOADS = 3; // potem pomijamy pozycję
+  // „Czy nadal oglądasz?”: selektor może się zmienić, wtedy watchdog i tak przeładuje stronę.
+  const CONTINUE_SELECTOR = '[data-uia="interrupt-autoplay-continue"]';
 
   let playlist = [];
   let settings = { loopMode: 'all', shuffle: false, creditsOffset: 0 };
@@ -23,6 +29,9 @@
   let watchedSeconds = 0;
   let lastTime = null;
   let endedSentFor = null;
+  let loadStartedAt = Date.now();
+  let started = false;
+  let nudged = false;
   const titleCache = {};
 
   chrome.storage.local.get(['playlist', 'settings', 'state']).then((d) => {
@@ -78,6 +87,49 @@
     watchedSeconds = 0;
     lastTime = null;
     endedSentFor = null;
+    loadStartedAt = Date.now();
+    started = false;
+    nudged = false;
+  }
+
+  function retryKey(id) {
+    return `nlp-reloads-${id}`;
+  }
+
+  // Na karcie pętli pilnuje, żeby film faktycznie ruszył: najpierw próbuje play(),
+  // potem przeładowuje stronę, a po MAX_RELOADS nieudanych próbach przechodzi dalej.
+  // Licznik prób trzyma w sessionStorage, bo przeżywa on przeładowanie karty.
+  function watchdog(id) {
+    const cont = document.querySelector(CONTINUE_SELECTOR);
+    if (cont && isLoopTabFor(id)) cont.click();
+
+    if (started) return;
+    if (watchedSeconds > 0.5) {
+      started = true;
+      sessionStorage.removeItem(retryKey(id));
+      return;
+    }
+    if (!isLoopTabFor(id)) {
+      loadStartedAt = Date.now(); // nie liczymy czasu, zanim wiadomo, że to karta pętli
+      return;
+    }
+
+    const waited = Date.now() - loadStartedAt;
+    if (!nudged && waited > PLAY_NUDGE_MS && video?.paused) {
+      nudged = true;
+      video.play().catch(() => {});
+    }
+    if (waited < RELOAD_MS) return;
+
+    const tries = Number(sessionStorage.getItem(retryKey(id)) || 0);
+    if (tries < MAX_RELOADS) {
+      sessionStorage.setItem(retryKey(id), String(tries + 1));
+      location.reload();
+    } else {
+      started = true;
+      sessionStorage.removeItem(retryKey(id));
+      chrome.runtime.sendMessage({ type: 'LOAD_FAILED', id }).catch(() => {});
+    }
   }
 
   function check() {
@@ -138,6 +190,7 @@
     if (v !== video) attach(v);
     if (id) {
       check();
+      watchdog(id);
       maybeFixTitle(id);
     }
     updateUi();
