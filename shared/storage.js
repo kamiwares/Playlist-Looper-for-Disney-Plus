@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS = {
   loopMode: 'all', // 'all' | 'one' | 'off'
   shuffle: false,
   creditsOffset: 0, // sekundy przed końcem, po których przechodzimy dalej
+  fullscreen: false, // okno Chrome w trybie pełnoekranowym podczas pętli
 };
 
 export const DEFAULT_STATE = {
@@ -12,6 +13,9 @@ export const DEFAULT_STATE = {
   currentId: null,
   index: 0,
   tabId: null,
+  fullscreenWindowId: null, // okno, które wtyczka przełączyła na pełny ekran
+  prevWindowState: null, // stan okna do przywrócenia po wyjściu
+  fullscreenPaused: false, // użytkownik wyszedł z pełnego ekranu: nie wracamy do niego aż do kolejnego Startu
 };
 
 export const PLACEHOLDER_PREFIX = 'Netflix #';

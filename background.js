@@ -36,6 +36,34 @@ async function tabExists(tabId) {
   }
 }
 
+// Pełny ekran całego okna (jak F11), bo requestFullscreen() na stronie wymaga kliknięcia
+// i znika przy każdej nawigacji do kolejnego filmu.
+async function enterFullscreen() {
+  const { settings, state } = await load();
+  if (!settings.fullscreen || state.fullscreenPaused || state.tabId == null) return;
+  const { windowId } = await chrome.tabs.get(state.tabId);
+  const win = await chrome.windows.get(windowId);
+  if (state.fullscreenWindowId === windowId && win.state !== 'fullscreen') {
+    // Użytkownik sam wyszedł z pełnego ekranu (F11 lub Esc): nie wymuszamy go ponownie.
+    await updateState({ fullscreenPaused: true, fullscreenWindowId: null, prevWindowState: null });
+    return;
+  }
+  if (win.state === 'fullscreen') return;
+  await updateState({ fullscreenWindowId: windowId, prevWindowState: win.state });
+  await chrome.windows.update(windowId, { state: 'fullscreen' });
+}
+
+async function exitFullscreen() {
+  const { state } = await load();
+  if (state.fullscreenWindowId == null) return;
+  try {
+    await chrome.windows.update(state.fullscreenWindowId, { state: state.prevWindowState || 'normal' });
+  } catch {
+    // okno mogło zostać zamknięte
+  }
+  await updateState({ fullscreenWindowId: null, prevWindowState: null });
+}
+
 async function playAt(index, preferredTabId) {
   const { playlist, state } = await load();
   const item = playlist[index];
@@ -57,6 +85,12 @@ async function playAt(index, preferredTabId) {
 
   lastAdvanceAt = Date.now();
   await updateState({ active: true, currentId: item.id, index, tabId });
+  await enterFullscreen();
+}
+
+async function stopLoop() {
+  await updateState({ active: false });
+  await exitFullscreen();
 }
 
 async function step(direction) {
@@ -64,7 +98,7 @@ async function step(direction) {
   const cur = indexOfCurrent(playlist, state);
   const next = pickIndex(playlist, settings, cur, direction);
   if (next === -1) {
-    await updateState({ active: false });
+    await stopLoop();
     return { ok: true, stopped: true };
   }
   await playAt(next);
@@ -91,13 +125,22 @@ async function handle(msg, sender) {
       const { playlist, state } = await load();
       if (playlist.length === 0) return { ok: false, error: 'Playlista jest pusta.' };
       const index = Number.isInteger(msg.index) ? msg.index : indexOfCurrent(playlist, state);
+      await updateState({ fullscreenPaused: false });
       await playAt(index, msg.tabId);
       return { ok: true };
     }
 
     case 'STOP':
-      await updateState({ active: false });
+      await stopLoop();
       return { ok: true };
+
+    case 'EXIT_FULLSCREEN': {
+      const { state } = await load();
+      if (sender.tab?.id !== state.tabId || state.fullscreenWindowId == null) return { ok: false };
+      await updateState({ fullscreenPaused: true });
+      await exitFullscreen();
+      return { ok: true };
+    }
 
     case 'NEXT':
       return step('next');
@@ -124,7 +167,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   const { state } = await load();
-  if (state.tabId === tabId) await updateState({ active: false, tabId: null });
+  if (state.tabId === tabId) {
+    await updateState({ active: false, tabId: null });
+    await exitFullscreen();
+  }
 });
 
 async function refreshBadge() {
@@ -135,8 +181,24 @@ async function refreshBadge() {
   await chrome.action.setBadgeBackgroundColor({ color: '#e50914' });
 }
 
-chrome.storage.onChanged.addListener((_changes, area) => {
-  if (area === 'local') refreshBadge();
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== 'local') return;
+  refreshBadge();
+  // Przełączenie opcji pełnego ekranu w trakcie trwającej pętli działa od razu.
+  const before = changes.settings?.oldValue?.fullscreen;
+  const after = changes.settings?.newValue?.fullscreen;
+  if (changes.settings && before !== after) {
+    const { state } = await load();
+    if (!state.active) return;
+    if (after) {
+      await updateState({ fullscreenPaused: false });
+      await enterFullscreen();
+    } else {
+      await exitFullscreen();
+    }
+  }
 });
-chrome.runtime.onStartup.addListener(() => updateState({ active: false, tabId: null }));
+chrome.runtime.onStartup.addListener(() =>
+  updateState({ active: false, tabId: null, fullscreenWindowId: null, prevWindowState: null, fullscreenPaused: false }),
+);
 chrome.runtime.onInstalled.addListener(refreshBadge);

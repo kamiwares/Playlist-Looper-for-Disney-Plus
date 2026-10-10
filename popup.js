@@ -132,6 +132,7 @@ function render() {
 
   $('#loopMode').value = settings.loopMode;
   $('#shuffle').checked = settings.shuffle;
+  $('#fullscreen').checked = settings.fullscreen;
   if (document.activeElement !== $('#creditsOffset')) $('#creditsOffset').value = settings.creditsOffset;
 
   const addCurrent = $('#add-current');
@@ -187,6 +188,7 @@ $('#add-form').addEventListener('submit', async (e) => {
 
 $('#loopMode').addEventListener('change', (e) => updateSettings({ loopMode: e.target.value }));
 $('#shuffle').addEventListener('change', (e) => updateSettings({ shuffle: e.target.checked }));
+$('#fullscreen').addEventListener('change', (e) => updateSettings({ fullscreen: e.target.checked }));
 $('#creditsOffset').addEventListener('change', (e) => {
   const v = Math.max(0, Math.min(900, Math.round(Number(e.target.value) || 0)));
   e.target.value = v;

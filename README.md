@@ -7,6 +7,7 @@ Wtyczka do Chrome (Manifest V3), która odtwarza w pętli własną playlistę fi
 - Zmiana kolejności przez przeciąganie albo przyciski ↑/↓, zmiana nazwy (✎), usuwanie (✕).
 - Tryby: zapętlanie całej listy, zapętlanie jednej pozycji, jednorazowe odtworzenie. Opcjonalnie kolejność losowa.
 - „Przejdź dalej N s przed końcem”, żeby pomijać napisy końcowe.
+- Pełny ekran podczas pętli: całe okno Chrome przechodzi w pełny ekran i zostaje w nim między filmami. Esc lub F11 wyłącza go do kolejnego Startu, a Stop przywraca poprzedni stan okna.
 - Eksport i import playlisty w JSON.
 - Licznik `1/5` na ikonie wtyczki i znacznik pętli na stronie odtwarzacza.
 
@@ -27,5 +28,5 @@ Wtyczka do Chrome (Manifest V3), która odtwarza w pętli własną playlistę fi
 
 ## Ograniczenia
 - Netflix może zmienić selektory DOM (tytuł, ekran końcowy). Podstawowe wykrywanie końca opiera się na `<video>`, więc nadal działa, ale tytuły mogą się nie uzupełniać.
-- Przeglądarka nie pozwala włączyć pełnego ekranu bez kliknięcia użytkownika, więc po przejściu do kolejnej pozycji trzeba go włączyć ponownie.
+- Pełny ekran samego odtwarzacza (przycisk Netflixa) znika przy każdym przejściu do kolejnej pozycji, bo przeglądarka wymaga do niego kliknięcia. Dlatego wtyczka przełącza w pełny ekran całe okno.
 - Pozycja to film albo konkretny odcinek. ID serialu (`/title/<id>`) wznawia serial tam, gdzie Netflix go zapamiętał.

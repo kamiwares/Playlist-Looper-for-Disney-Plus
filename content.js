@@ -188,6 +188,16 @@
     }
   }
 
+  // W pełnym ekranie okna (chrome.windows) Esc nie działa domyślnie, więc obsługujemy go sami.
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key === 'Escape' && !document.fullscreenElement && isLoopTabFor(currentId())) {
+        chrome.runtime.sendMessage({ type: 'EXIT_FULLSCREEN' }).catch(() => {});
+      }
+    },
+    true,
+  );
   document.addEventListener('mousemove', showUi, { passive: true });
   document.addEventListener('fullscreenchange', mountRoot);
 
