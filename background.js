@@ -134,7 +134,8 @@ async function handle(msg, sender) {
       if (playlist.length === 0) return { ok: false, error: t('errEmpty') };
       const index = Number.isInteger(msg.index) ? msg.index : indexOfCurrent(playlist, state);
       await updateState({ fullscreenPaused: false });
-      await playAt(index, msg.tabId);
+      // here: start z linku z #autostart, pętla gra w karcie nadawcy.
+      await playAt(index, msg.here ? sender.tab?.id : msg.tabId);
       return { ok: true };
     }
 

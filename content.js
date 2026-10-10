@@ -396,6 +396,12 @@
     if (v !== video) attach(v);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
+  // Link z #autostart (znacznik zapamiętał autostart.js): uruchamiamy pętlę w tej karcie.
+  if (sessionStorage.getItem('nlp-autostart')) {
+    sessionStorage.removeItem('nlp-autostart');
+    send({ type: 'START', here: true });
+  }
+
   timer = setInterval(tick, 1000);
   tick();
 })();
