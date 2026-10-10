@@ -136,9 +136,34 @@ async function handle(msg, sender) {
 
     case 'EXIT_FULLSCREEN': {
       const { state } = await load();
-      if (sender.tab?.id !== state.tabId || state.fullscreenWindowId == null) return { ok: false };
-      await updateState({ fullscreenPaused: true });
+      if (!sender.tab || state.fullscreenWindowId !== sender.tab.windowId) return { ok: false };
+      if (sender.tab.id === state.tabId) await updateState({ fullscreenPaused: true });
       await exitFullscreen();
+      return { ok: true };
+    }
+
+    case 'TOGGLE_FULLSCREEN': {
+      // Przycisk pełnego ekranu na stronie odtwarzacza, na dowolnej karcie Netflixa.
+      const tab = sender.tab;
+      if (!tab) return { ok: false };
+      const { state } = await load();
+      const isLoopTab = tab.id === state.tabId;
+      const win = await chrome.windows.get(tab.windowId);
+      if (win.state === 'fullscreen') {
+        if (state.fullscreenWindowId === win.id) {
+          if (isLoopTab) await updateState({ fullscreenPaused: true }); // jak Esc: nie wracamy do kolejnego Startu
+          await exitFullscreen();
+        } else {
+          await chrome.windows.update(win.id, { state: 'maximized' }); // F11 włączone ręcznie, poprzedni stan nieznany
+        }
+      } else {
+        await updateState({
+          fullscreenWindowId: win.id,
+          prevWindowState: win.state,
+          ...(isLoopTab && { fullscreenPaused: false }),
+        });
+        await chrome.windows.update(win.id, { state: 'fullscreen' });
+      }
       return { ok: true };
     }
 

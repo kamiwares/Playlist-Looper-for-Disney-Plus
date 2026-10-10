@@ -33,6 +33,37 @@
   let started = false;
   let nudged = false;
   const titleCache = {};
+  let timer = null;
+  let observer = null;
+  let dead = false;
+
+  // Po przeładowaniu lub aktualizacji wtyczki stary skrypt zostaje w otwartej karcie, ale traci
+  // połączenie z wtyczką. Wtedy chrome.runtime.sendMessage rzuca „Extension context invalidated”
+  // synchronicznie, więc .catch() tego nie łapie. Taki osierocony skrypt sam się wyłącza.
+  function alive() {
+    return !dead && !!chrome.runtime?.id;
+  }
+
+  function teardown() {
+    if (dead) return;
+    dead = true;
+    clearInterval(timer);
+    observer?.disconnect();
+    root.remove();
+  }
+
+  function send(msg) {
+    if (!alive()) {
+      teardown();
+      return Promise.resolve(null);
+    }
+    try {
+      return chrome.runtime.sendMessage(msg).catch(() => null);
+    } catch {
+      teardown();
+      return Promise.resolve(null);
+    }
+  }
 
   chrome.storage.local.get(['playlist', 'settings', 'state']).then((d) => {
     if (Array.isArray(d.playlist)) playlist = d.playlist;
@@ -47,7 +78,7 @@
     if (changes.state) state = { ...state, ...changes.state.newValue };
     updateUi();
   });
-  chrome.runtime.sendMessage({ type: 'WHO_AM_I' }).then((r) => {
+  send({ type: 'WHO_AM_I' }).then((r) => {
     myTabId = r?.tabId ?? null;
     updateUi();
   });
@@ -76,7 +107,7 @@
   function sendEnded(id) {
     if (endedSentFor === id || !isLoopTabFor(id)) return;
     endedSentFor = id;
-    chrome.runtime.sendMessage({ type: 'VIDEO_ENDED', id }).catch(() => {});
+    send({ type: 'VIDEO_ENDED', id });
   }
 
   function onIdChange(prev, next) {
@@ -128,7 +159,7 @@
     } else {
       started = true;
       sessionStorage.removeItem(retryKey(id));
-      chrome.runtime.sendMessage({ type: 'LOAD_FAILED', id }).catch(() => {});
+      send({ type: 'LOAD_FAILED', id });
     }
   }
 
@@ -171,16 +202,24 @@
     titleCache[id] = title;
     const item = playlist.find((p) => p.id === id);
     if (!item || !item.title.startsWith(PLACEHOLDER_PREFIX)) return;
-    const d = await chrome.storage.local.get('playlist');
-    const fresh = Array.isArray(d.playlist) ? d.playlist : [];
-    const target = fresh.find((p) => p.id === id);
-    if (target && target.title.startsWith(PLACEHOLDER_PREFIX)) {
-      target.title = title;
-      await chrome.storage.local.set({ playlist: fresh });
+    try {
+      const d = await chrome.storage.local.get('playlist');
+      const fresh = Array.isArray(d.playlist) ? d.playlist : [];
+      const target = fresh.find((p) => p.id === id);
+      if (target && target.title.startsWith(PLACEHOLDER_PREFIX)) {
+        target.title = title;
+        await chrome.storage.local.set({ playlist: fresh });
+      }
+    } catch {
+      teardown(); // kontekst wtyczki unieważniony w trakcie zapisu
     }
   }
 
   function tick() {
+    if (!alive()) {
+      teardown();
+      return;
+    }
     const id = currentId();
     if (id !== lastId) {
       onIdChange(lastId, id);
@@ -199,15 +238,37 @@
   // ---------- Pływający panel na stronie odtwarzacza ----------
   const root = document.createElement('div');
   root.id = 'nlp-root';
-  root.innerHTML = '<span class="nlp-badge"></span><button type="button" class="nlp-add"></button>';
+  root.innerHTML =
+    '<span class="nlp-badge"></span>' +
+    '<button type="button" class="nlp-fs"></button>' +
+    '<button type="button" class="nlp-add"></button>';
   const badge = root.querySelector('.nlp-badge');
+  const fsBtn = root.querySelector('.nlp-fs');
   const addBtn = root.querySelector('.nlp-add');
   let hideTimer = null;
 
   addBtn.addEventListener('click', async () => {
     const id = currentId();
     if (!id) return;
-    await chrome.runtime.sendMessage({ type: 'ADD', id, title: readTitle() || titleCache[id] });
+    await send({ type: 'ADD', id, title: readTitle() || titleCache[id] });
+  });
+
+  // Pełny ekran strony (np. przycisk Netflixa) albo całego okna (F11 lub wtyczka).
+  function isFullscreen() {
+    return !!document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches;
+  }
+
+  function updateFsBtn() {
+    const fs = isFullscreen();
+    fsBtn.textContent = fs ? '✕ Pełny ekran' : '⛶ Pełny ekran';
+    fsBtn.title = fs ? 'Wyłącz pełny ekran (Esc)' : 'Włącz pełny ekran';
+  }
+
+  fsBtn.addEventListener('click', () => {
+    // Pełny ekran samej strony wyłączamy lokalnie; okno przełącza service worker,
+    // bo pełny ekran okna przetrwa przejście do kolejnego filmu.
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else send({ type: 'TOGGLE_FULLSCREEN' });
   });
 
   function mountRoot() {
@@ -233,26 +294,32 @@
     const inList = index !== -1;
     addBtn.disabled = inList;
     addBtn.textContent = inList ? '✓ W pętli' : '+ Dodaj do pętli';
-    if (isLoopTabFor(id)) {
+    const loop = isLoopTabFor(id);
+    if (loop) {
       badge.textContent = `⟳ Pętla ${index + 1}/${playlist.length}`;
       badge.hidden = false;
     } else {
       badge.hidden = true;
     }
+    updateFsBtn();
   }
 
   // W pełnym ekranie okna (chrome.windows) Esc nie działa domyślnie, więc obsługujemy go sami.
   document.addEventListener(
     'keydown',
     (e) => {
-      if (e.key === 'Escape' && !document.fullscreenElement && isLoopTabFor(currentId())) {
-        chrome.runtime.sendMessage({ type: 'EXIT_FULLSCREEN' }).catch(() => {});
+      if (e.key === 'Escape' && !document.fullscreenElement && state.fullscreenWindowId != null) {
+        send({ type: 'EXIT_FULLSCREEN' });
       }
     },
     true,
   );
   document.addEventListener('mousemove', showUi, { passive: true });
-  document.addEventListener('fullscreenchange', mountRoot);
+  document.addEventListener('fullscreenchange', () => {
+    mountRoot();
+    updateFsBtn();
+  });
+  window.addEventListener('resize', updateFsBtn, { passive: true });
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === 'GET_CURRENT') {
@@ -261,11 +328,11 @@
     }
   });
 
-  new MutationObserver(() => {
+  observer = new MutationObserver(() => {
     const v = document.querySelector('video');
     if (v !== video) attach(v);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
-  setInterval(tick, 1000);
+  timer = setInterval(tick, 1000);
   tick();
 })();
