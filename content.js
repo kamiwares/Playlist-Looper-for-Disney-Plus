@@ -33,6 +33,37 @@
   let started = false;
   let nudged = false;
   const titleCache = {};
+  let timer = null;
+  let observer = null;
+  let dead = false;
+
+  // Po przeładowaniu lub aktualizacji wtyczki stary skrypt zostaje w otwartej karcie, ale traci
+  // połączenie z wtyczką. Wtedy chrome.runtime.sendMessage rzuca „Extension context invalidated”
+  // synchronicznie, więc .catch() tego nie łapie. Taki osierocony skrypt sam się wyłącza.
+  function alive() {
+    return !dead && !!chrome.runtime?.id;
+  }
+
+  function teardown() {
+    if (dead) return;
+    dead = true;
+    clearInterval(timer);
+    observer?.disconnect();
+    root.remove();
+  }
+
+  function send(msg) {
+    if (!alive()) {
+      teardown();
+      return Promise.resolve(null);
+    }
+    try {
+      return chrome.runtime.sendMessage(msg).catch(() => null);
+    } catch {
+      teardown();
+      return Promise.resolve(null);
+    }
+  }
 
   chrome.storage.local.get(['playlist', 'settings', 'state']).then((d) => {
     if (Array.isArray(d.playlist)) playlist = d.playlist;
@@ -47,7 +78,7 @@
     if (changes.state) state = { ...state, ...changes.state.newValue };
     updateUi();
   });
-  chrome.runtime.sendMessage({ type: 'WHO_AM_I' }).then((r) => {
+  send({ type: 'WHO_AM_I' }).then((r) => {
     myTabId = r?.tabId ?? null;
     updateUi();
   });
@@ -76,7 +107,7 @@
   function sendEnded(id) {
     if (endedSentFor === id || !isLoopTabFor(id)) return;
     endedSentFor = id;
-    chrome.runtime.sendMessage({ type: 'VIDEO_ENDED', id }).catch(() => {});
+    send({ type: 'VIDEO_ENDED', id });
   }
 
   function onIdChange(prev, next) {
@@ -128,7 +159,7 @@
     } else {
       started = true;
       sessionStorage.removeItem(retryKey(id));
-      chrome.runtime.sendMessage({ type: 'LOAD_FAILED', id }).catch(() => {});
+      send({ type: 'LOAD_FAILED', id });
     }
   }
 
@@ -171,16 +202,24 @@
     titleCache[id] = title;
     const item = playlist.find((p) => p.id === id);
     if (!item || !item.title.startsWith(PLACEHOLDER_PREFIX)) return;
-    const d = await chrome.storage.local.get('playlist');
-    const fresh = Array.isArray(d.playlist) ? d.playlist : [];
-    const target = fresh.find((p) => p.id === id);
-    if (target && target.title.startsWith(PLACEHOLDER_PREFIX)) {
-      target.title = title;
-      await chrome.storage.local.set({ playlist: fresh });
+    try {
+      const d = await chrome.storage.local.get('playlist');
+      const fresh = Array.isArray(d.playlist) ? d.playlist : [];
+      const target = fresh.find((p) => p.id === id);
+      if (target && target.title.startsWith(PLACEHOLDER_PREFIX)) {
+        target.title = title;
+        await chrome.storage.local.set({ playlist: fresh });
+      }
+    } catch {
+      teardown(); // kontekst wtyczki unieważniony w trakcie zapisu
     }
   }
 
   function tick() {
+    if (!alive()) {
+      teardown();
+      return;
+    }
     const id = currentId();
     if (id !== lastId) {
       onIdChange(lastId, id);
@@ -211,11 +250,11 @@
   addBtn.addEventListener('click', async () => {
     const id = currentId();
     if (!id) return;
-    await chrome.runtime.sendMessage({ type: 'ADD', id, title: readTitle() || titleCache[id] });
+    await send({ type: 'ADD', id, title: readTitle() || titleCache[id] });
   });
 
   exitFsBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'EXIT_FULLSCREEN' }).catch(() => {});
+    send({ type: 'EXIT_FULLSCREEN' });
   });
 
   function mountRoot() {
@@ -257,7 +296,7 @@
     'keydown',
     (e) => {
       if (e.key === 'Escape' && !document.fullscreenElement && isLoopTabFor(currentId())) {
-        chrome.runtime.sendMessage({ type: 'EXIT_FULLSCREEN' }).catch(() => {});
+        send({ type: 'EXIT_FULLSCREEN' });
       }
     },
     true,
@@ -272,11 +311,11 @@
     }
   });
 
-  new MutationObserver(() => {
+  observer = new MutationObserver(() => {
     const v = document.querySelector('video');
     if (v !== video) attach(v);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
-  setInterval(tick, 1000);
+  timer = setInterval(tick, 1000);
   tick();
 })();
