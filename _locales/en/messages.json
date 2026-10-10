@@ -1,0 +1,76 @@
+{
+  "extName": { "message": "Playlist Looper for Netflix" },
+  "extDescription": { "message": "Your own playlist of Netflix movies and episodes, played on repeat." },
+
+  "prev": { "message": "Previous" },
+  "next": { "message": "Next" },
+  "start": { "message": "▶ Start" },
+  "stop": { "message": "⏹ Stop" },
+
+  "addCurrent": { "message": "+ Add current title" },
+  "addCurrentDone": { "message": "✓ Current title is in the playlist" },
+  "addInputPlaceholder": { "message": "Netflix link or ID, e.g. 80100172" },
+  "add": { "message": "Add" },
+  "emptyList": { "message": "The playlist is empty. Open a title on Netflix and click “Add current title”." },
+
+  "settings": { "message": "Settings" },
+  "mode": { "message": "Mode" },
+  "modeAll": { "message": "Loop the whole list" },
+  "modeOne": { "message": "Loop a single item" },
+  "modeOff": { "message": "Play once and stop" },
+  "shuffle": { "message": "Shuffle" },
+  "fullscreenOption": { "message": "Fullscreen during the loop" },
+  "fullscreenHint": { "message": "After Start, the whole window goes fullscreen and stays that way between titles. You can also toggle it at any time with the “⛶ Fullscreen” button on the player page. Esc turns it off until the next Start." },
+  "skipBefore": { "message": "Move on" },
+  "skipAfter": { "message": "s before the end" },
+  "skipHint": { "message": "0 = play to the very end. E.g. 60 to skip the end credits." },
+
+  "backup": { "message": "Backup" },
+  "backupPlaceholder": { "message": "Playlist JSON" },
+  "export": { "message": "Export" },
+  "import": { "message": "Import (replace)" },
+  "clear": { "message": "Clear list" },
+  "clearConfirm": { "message": "Are you sure?" },
+
+  "drag": { "message": "Drag to reorder" },
+  "moveUp": { "message": "Move up" },
+  "moveDown": { "message": "Move down" },
+  "rename": { "message": "Rename" },
+  "remove": { "message": "Remove" },
+  "placeholderTooltip": {
+    "message": "ID: $ID$\nThe real title fills in automatically after this item plays for the first time.",
+    "placeholders": { "id": { "content": "$1" } }
+  },
+  "placeholderHint": { "message": "title appears after playing" },
+
+  "statusAdded": { "message": "Added to the playlist." },
+  "statusBadLink": { "message": "Link not recognized. Paste a netflix.com/watch/… address or just the ID." },
+  "statusCopied": { "message": "Playlist copied to the clipboard." },
+  "statusInTextarea": { "message": "The playlist is in the text field." },
+  "statusBadJson": { "message": "Invalid JSON: expected a list of items." },
+  "statusImported": {
+    "message": "Imported: $COUNT$",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "statusCleared": { "message": "Playlist cleared." },
+
+  "pageAdd": { "message": "+ Add to loop" },
+  "pageInLoop": { "message": "✓ In the loop" },
+  "pageBadge": {
+    "message": "⟳ Loop $POS$/$TOTAL$",
+    "placeholders": { "pos": { "content": "$1" }, "total": { "content": "$2" } }
+  },
+  "fsOn": { "message": "⛶ Fullscreen" },
+  "fsOff": { "message": "✕ Fullscreen" },
+  "fsOnTitle": { "message": "Turn on fullscreen" },
+  "fsOffTitle": { "message": "Turn off fullscreen (Esc)" },
+
+  "errNoItem": { "message": "There is no item with this number." },
+  "errDuplicate": { "message": "This item is already in the playlist." },
+  "errEmpty": { "message": "The playlist is empty." },
+  "noticeEnd": { "message": "■ End of playlist" },
+  "noticeSkipped": {
+    "message": "⚠ Skipped “$TITLE$”: it failed to load",
+    "placeholders": { "title": { "content": "$1" } }
+  }
+}

@@ -1,4 +1,5 @@
 import { load, savePlaylist, updateState, watchUrl, placeholderTitle } from './shared/storage.js';
+import { t } from './shared/i18n.js';
 
 // Zabezpieczenie przed podwójnym przejściem (np. 'ended' + timeupdate w tej samej chwili).
 let lastAdvanceAt = 0;
@@ -67,7 +68,7 @@ async function exitFullscreen() {
 async function playAt(index, preferredTabId) {
   const { playlist, state } = await load();
   const item = playlist[index];
-  if (!item) throw new Error('Brak pozycji o tym numerze.');
+  if (!item) throw new Error(t('errNoItem'));
 
   const url = watchUrl(item.id);
   let tabId = null;
@@ -105,7 +106,7 @@ async function step(direction) {
   const next = pickIndex(playlist, settings, cur, direction);
   if (next === -1) {
     await stopLoop();
-    await notify(state.tabId, '■ Koniec playlisty');
+    await notify(state.tabId, t('noticeEnd'));
     return { ok: true, stopped: true };
   }
   await playAt(next);
@@ -114,7 +115,7 @@ async function step(direction) {
 
 async function addItem(id, title) {
   const { playlist } = await load();
-  if (playlist.some((p) => p.id === id)) return { ok: false, error: 'Ta pozycja jest już na liście.' };
+  if (playlist.some((p) => p.id === id)) return { ok: false, error: t('errDuplicate') };
   playlist.push({ id, title: title || placeholderTitle(id), addedAt: Date.now() });
   await savePlaylist(playlist);
   return { ok: true };
@@ -130,7 +131,7 @@ async function handle(msg, sender) {
 
     case 'START': {
       const { playlist, state } = await load();
-      if (playlist.length === 0) return { ok: false, error: 'Playlista jest pusta.' };
+      if (playlist.length === 0) return { ok: false, error: t('errEmpty') };
       const index = Number.isInteger(msg.index) ? msg.index : indexOfCurrent(playlist, state);
       await updateState({ fullscreenPaused: false });
       await playAt(index, msg.tabId);
@@ -193,12 +194,12 @@ async function handle(msg, sender) {
       if (!state.active || sender.tab?.id !== state.tabId || msg.id !== state.currentId) return { ok: false };
       const { playlist } = await load();
       const title = playlist.find((p) => p.id === msg.id)?.title || msg.id;
-      await notify(state.tabId, `⚠ Pominięto „${title}”: nie udało się załadować`);
+      await notify(state.tabId, t('noticeSkipped', title));
       return step('next');
     }
 
     default:
-      return { ok: false, error: `Nieznany komunikat: ${msg?.type}` };
+      return { ok: false, error: `Unknown message: ${msg?.type}` };
   }
 }
 
