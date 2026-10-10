@@ -155,6 +155,13 @@ async function handle(msg, sender) {
       return step('auto');
     }
 
+    case 'LOAD_FAILED': {
+      // Pozycja nie załadowała się mimo kilku przeładowań: pomijamy ją, także w trybie „jedna pozycja”.
+      const { state } = await load();
+      if (!state.active || sender.tab?.id !== state.tabId || msg.id !== state.currentId) return { ok: false };
+      return step('next');
+    }
+
     default:
       return { ok: false, error: `Nieznany komunikat: ${msg?.type}` };
   }

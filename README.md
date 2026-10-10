@@ -23,6 +23,7 @@ Wtyczka do Chrome (Manifest V3), która odtwarza w pętli własną playlistę fi
 
 ## Jak to działa
 - `content.js` śledzi element `<video>` na stronie odtwarzacza. Za koniec pozycji uznaje: zdarzenie `ended`, osiągnięcie progu „N s przed końcem”, pojawienie się ekranu końcowego Netflixa albo samodzielne przejście Netflixa dalej po obejrzeniu ponad 85% materiału.
+- Na karcie pętli działa watchdog ładowania. Jeśli film nie ruszy w ciągu 12 s, wtyczka próbuje go uruchomić. Po 25 s przeładowuje stronę, maksymalnie 3 razy, a potem pomija pozycję. Automatycznie klika też „Czy nadal oglądasz?”.
 - `background.js` wybiera następną pozycję i otwiera `netflix.com/watch/<id>?t=0` w karcie pętli.
 - Dane są w `chrome.storage.local` (`playlist`, `settings`, `state`).
 
