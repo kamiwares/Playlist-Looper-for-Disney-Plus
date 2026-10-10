@@ -22,6 +22,7 @@
   let settings = { loopMode: 'all', shuffle: false, creditsOffset: 0 };
   let state = { active: false, currentId: null, tabId: null };
   let myTabId = null;
+  let notice = null; // ostatni komunikat od service workera: {text, tabId, at}
 
   let lastId = null;
   let video = null;
@@ -50,6 +51,7 @@
     clearInterval(timer);
     observer?.disconnect();
     root.remove();
+    toast.remove();
   }
 
   function send(msg) {
@@ -65,22 +67,27 @@
     }
   }
 
-  chrome.storage.local.get(['playlist', 'settings', 'state']).then((d) => {
+  chrome.storage.local.get(['playlist', 'settings', 'state', 'notice']).then((d) => {
     if (Array.isArray(d.playlist)) playlist = d.playlist;
     if (d.settings) settings = { ...settings, ...d.settings };
     if (d.state) state = { ...state, ...d.state };
+    notice = d.notice || null;
     updateUi();
+    maybeShowNotice();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (changes.playlist) playlist = changes.playlist.newValue || [];
     if (changes.settings) settings = { ...settings, ...changes.settings.newValue };
     if (changes.state) state = { ...state, ...changes.state.newValue };
+    if (changes.notice) notice = changes.notice.newValue || null;
     updateUi();
+    if (changes.notice) maybeShowNotice();
   });
   send({ type: 'WHO_AM_I' }).then((r) => {
     myTabId = r?.tabId ?? null;
     updateUi();
+    maybeShowNotice();
   });
 
   function currentId() {
@@ -271,10 +278,47 @@
     else send({ type: 'TOGGLE_FULLSCREEN' });
   });
 
-  function mountRoot() {
+  // Element musi być wewnątrz elementu pełnoekranowego, inaczej znika w pełnym ekranie Netflixa.
+  function mountInPlayer(el) {
     const fs = document.fullscreenElement;
     const host = fs && fs.tagName !== 'VIDEO' ? fs : document.body;
-    if (host && root.parentNode !== host) host.appendChild(root);
+    if (host && el.parentNode !== host) host.appendChild(el);
+  }
+
+  function mountRoot() {
+    mountInPlayer(root);
+    if (toast.isConnected) mountInPlayer(toast);
+  }
+
+  // ---------- Komunikaty na stronie („Pominięto…”, „Koniec playlisty”) ----------
+  const NOTICE_MAX_AGE_MS = 15000; // starszych nie pokazujemy (np. po ręcznym odświeżeniu karty później)
+  const TOAST_MS = 6000;
+  const toast = document.createElement('div');
+  toast.id = 'nlp-toast';
+  toast.setAttribute('role', 'status');
+  let toastTimer = null;
+
+  function showToast(text) {
+    toast.textContent = text;
+    mountInPlayer(toast);
+    void toast.offsetWidth; // restart przejścia przy kolejnym komunikacie
+    toast.classList.add('nlp-toast-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('nlp-toast-visible');
+      setTimeout(() => toast.remove(), 300);
+    }, TOAST_MS);
+  }
+
+  // Pokazuje komunikat raz, tylko na karcie, do której był skierowany. sessionStorage chroni
+  // przed ponownym pokazaniem po przeładowaniu karty (np. przez watchdog).
+  function maybeShowNotice() {
+    if (!notice || myTabId == null || notice.tabId !== myTabId) return;
+    if (Date.now() - notice.at > NOTICE_MAX_AGE_MS) return;
+    const key = 'nlp-notice-shown';
+    if (sessionStorage.getItem(key) === String(notice.at)) return;
+    sessionStorage.setItem(key, String(notice.at));
+    showToast(notice.text);
   }
 
   function showUi() {
