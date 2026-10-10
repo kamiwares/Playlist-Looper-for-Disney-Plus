@@ -1,7 +1,13 @@
 // Runs on all of netflix.com (an SPA), tracking URL changes and <video> swaps itself.
-(() => {
-  const PLACEHOLDER_PREFIX = 'Netflix #';
-  const t = (key, ...subs) => chrome.i18n.getMessage(key, subs.map(String)) || key; // copy of shared/i18n.js
+// Content scripts can't use static imports, so shared modules load via import() (web-accessible).
+(async () => {
+  const load = (file) => import(chrome.runtime.getURL(file));
+  const [{ t }, { setIcon }, { PLACEHOLDER_PREFIX, DEFAULT_SETTINGS, DEFAULT_STATE }] = await Promise.all([
+    load('shared/i18n.js'),
+    load('shared/icons.js'),
+    load('shared/storage.js'),
+  ]);
+
   // Netflix post-play screen. Selectors may change, so it's only an extra end signal.
   const POSTPLAY_SELECTOR = [
     '[data-uia="next-episode-seamless-button"]',
@@ -18,8 +24,8 @@
   const CONTINUE_SELECTOR = '[data-uia="interrupt-autoplay-continue"]';
 
   let playlist = [];
-  let settings = { loopMode: 'all', shuffle: false, creditsOffset: 0 };
-  let state = { active: false, currentId: null, tabId: null };
+  let settings = { ...DEFAULT_SETTINGS };
+  let state = { ...DEFAULT_STATE };
   let myTabId = null;
   let notice = null; // latest notice: {text, icon, tabId, at}
   let settingsLoaded = false; // autostart waits for the profile name
@@ -297,11 +303,6 @@
   const fsBtn = root.querySelector('.nlp-fs');
   const addBtn = root.querySelector('.nlp-add');
   let hideTimer = null;
-
-  // Copy of shared/icons.js; icon files are web-accessible for netflix.com.
-  function setIcon(el, name) {
-    el.style.setProperty('--nlp-icon', `url("${chrome.runtime.getURL(`icons/fa/${name}.svg`)}")`);
-  }
 
   // Sets icon and label; the icon is swapped only when it changes.
   function setContent(el, iconName, text) {

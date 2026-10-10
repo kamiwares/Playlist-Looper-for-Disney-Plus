@@ -40,7 +40,10 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/fa/*.svg"],
+      "resources": [
+        "icons/fa/*.svg",
+        "shared/*.js"
+      ],
       "matches": ["*://www.netflix.com/*"]
     }
   ]
