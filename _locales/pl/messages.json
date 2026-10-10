@@ -32,6 +32,8 @@
   "clear": { "message": "Wyczyść listę" },
   "clearConfirm": { "message": "Na pewno?" },
 
+  "madeBy": { "message": "brought to life by" },
+
   "drag": { "message": "Przeciągnij, żeby zmienić kolejność" },
   "moveUp": { "message": "W górę" },
   "moveDown": { "message": "W dół" },

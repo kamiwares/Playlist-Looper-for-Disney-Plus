@@ -32,6 +32,8 @@
   "clear": { "message": "Clear list" },
   "clearConfirm": { "message": "Are you sure?" },
 
+  "madeBy": { "message": "brought to life by" },
+
   "drag": { "message": "Drag to reorder" },
   "moveUp": { "message": "Move up" },
   "moveDown": { "message": "Move down" },

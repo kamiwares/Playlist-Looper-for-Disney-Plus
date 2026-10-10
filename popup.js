@@ -273,6 +273,7 @@ chrome.storage.onChanged.addListener((_changes, area) => {
 });
 
 document.documentElement.lang = chrome.i18n.getUILanguage();
+$('#version').textContent = `v${chrome.runtime.getManifest().version}`;
 localize();
 localize(tpl.content); // szablon pozycji listy, zanim zostanie sklonowany
 applyIcons();

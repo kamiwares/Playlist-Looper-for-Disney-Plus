@@ -116,3 +116,14 @@ h1 .icon { color: var(--accent); }
 #toggle, #add-current { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .handle .icon { font-size: 12px; }
 .actions .icon { font-size: 11px; }
+
+.credits {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.credits a { color: var(--muted); }
+.credits a:hover { color: var(--text); }
