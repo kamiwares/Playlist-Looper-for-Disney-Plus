@@ -1,4 +1,4 @@
-// content.js keeps its own copy of t() (content scripts can't import modules).
+// Used by the service worker, the popup and content.js (via import()).
 
 export function t(key, ...subs) {
   return chrome.i18n.getMessage(key, subs.map(String)) || key;

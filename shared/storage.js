@@ -1,4 +1,4 @@
-// Shared by the service worker and the popup.
+// Shared by the service worker, the popup and content.js (via import()).
 
 export const DEFAULT_SETTINGS = {
   loopMode: 'all', // 'all' | 'one' | 'off'
