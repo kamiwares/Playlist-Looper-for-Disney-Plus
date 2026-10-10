@@ -240,10 +240,10 @@
   root.id = 'nlp-root';
   root.innerHTML =
     '<span class="nlp-badge"></span>' +
-    '<button type="button" class="nlp-exit-fs" title="Wyłącz pełny ekran (Esc)">✕ Pełny ekran</button>' +
+    '<button type="button" class="nlp-fs"></button>' +
     '<button type="button" class="nlp-add"></button>';
   const badge = root.querySelector('.nlp-badge');
-  const exitFsBtn = root.querySelector('.nlp-exit-fs');
+  const fsBtn = root.querySelector('.nlp-fs');
   const addBtn = root.querySelector('.nlp-add');
   let hideTimer = null;
 
@@ -253,8 +253,22 @@
     await send({ type: 'ADD', id, title: readTitle() || titleCache[id] });
   });
 
-  exitFsBtn.addEventListener('click', () => {
-    send({ type: 'EXIT_FULLSCREEN' });
+  // Pełny ekran strony (np. przycisk Netflixa) albo całego okna (F11 lub wtyczka).
+  function isFullscreen() {
+    return !!document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches;
+  }
+
+  function updateFsBtn() {
+    const fs = isFullscreen();
+    fsBtn.textContent = fs ? '✕ Pełny ekran' : '⛶ Pełny ekran';
+    fsBtn.title = fs ? 'Wyłącz pełny ekran (Esc)' : 'Włącz pełny ekran';
+  }
+
+  fsBtn.addEventListener('click', () => {
+    // Pełny ekran samej strony wyłączamy lokalnie; okno przełącza service worker,
+    // bo pełny ekran okna przetrwa przejście do kolejnego filmu.
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else send({ type: 'TOGGLE_FULLSCREEN' });
   });
 
   function mountRoot() {
@@ -287,22 +301,25 @@
     } else {
       badge.hidden = true;
     }
-    // Tylko gdy to wtyczka przełączyła okno w pełny ekran (tylko taki potrafi wyłączyć).
-    exitFsBtn.hidden = !(loop && state.fullscreenWindowId != null);
+    updateFsBtn();
   }
 
   // W pełnym ekranie okna (chrome.windows) Esc nie działa domyślnie, więc obsługujemy go sami.
   document.addEventListener(
     'keydown',
     (e) => {
-      if (e.key === 'Escape' && !document.fullscreenElement && isLoopTabFor(currentId())) {
+      if (e.key === 'Escape' && !document.fullscreenElement && state.fullscreenWindowId != null) {
         send({ type: 'EXIT_FULLSCREEN' });
       }
     },
     true,
   );
   document.addEventListener('mousemove', showUi, { passive: true });
-  document.addEventListener('fullscreenchange', mountRoot);
+  document.addEventListener('fullscreenchange', () => {
+    mountRoot();
+    updateFsBtn();
+  });
+  window.addEventListener('resize', updateFsBtn, { passive: true });
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === 'GET_CURRENT') {
