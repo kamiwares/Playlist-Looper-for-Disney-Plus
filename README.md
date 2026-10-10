@@ -1,10 +1,57 @@
-# Playlist Looper for Netflix
+<p align="center">
+  <img src="icons/icon128.png" width="96" height="96" alt="Playlist Looper for Netflix icon">
+</p>
 
-A Chrome extension (Manifest V3) that plays your own playlist of Netflix movies and episodes on repeat.
+<h1 align="center">Playlist Looper for Netflix</h1>
+
+<p align="center">
+  Your own playlist of Netflix movies and episodes, played on repeat.
+</p>
+
+<p align="center">
+  <a href="manifest.json"><img src="https://img.shields.io/github/manifest-json/v/kamiwares/netflix?label=version&color=e50914" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/kamiwares/netflix?color=blue" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Manifest-V3-4285F4?logo=googlechrome&logoColor=white" alt="Manifest V3">
+  <img src="https://img.shields.io/badge/Chrome-111%2B-4285F4?logo=googlechrome&logoColor=white" alt="Chrome 111+">
+  <img src="https://img.shields.io/badge/languages-EN%20%7C%20PL-informational" alt="Languages: English, Polish">
+  <img src="https://img.shields.io/badge/dependencies-none-brightgreen" alt="No dependencies">
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+  <a href="https://github.com/kamiwares/netflix/commits/main"><img src="https://img.shields.io/github/last-commit/kamiwares/netflix" alt="Last commit"></a>
+</p>
+
+<p align="center">
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="#usage">Usage</a> ·
+  <a href="#playlist-json">Playlist JSON</a> ·
+  <a href="#autostart">Autostart</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#contributing">Contributing</a>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/mockup.png" width="720" alt="Playlist Looper for Netflix on a laptop: the popup with a playlist next to the on-page loop controls">
+</p>
 
 Build a list, reorder it however you like, press **Start**. When an item ends, the next one starts. After the last item, it goes back to the first.
 
+> [!NOTE]
 > The interface is available in English and Polish and follows your browser's language. New translations are welcome, see [Contributing](#contributing).
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" valign="top"><img src="docs/screenshots/popup.png" width="300" alt="Popup with a playlist, the current item highlighted"><br><sub>Playlist in the popup</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/popup-settings.png" width="300" alt="Popup with the settings section expanded"><br><sub>Settings</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/screenshots/player.png" width="620" alt="On-page loop badge, fullscreen and playlist buttons, and a notice about a skipped item"><br><sub>On-page controls and notices on the player page</sub></td>
+  </tr>
+</table>
+
+<sub>The screenshots use sample titles. The player view is a mockup with a neutral background instead of a video frame.</sub>
 
 ## Features
 
