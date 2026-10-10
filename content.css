@@ -48,3 +48,28 @@
   cursor: default;
   opacity: 0.8;
 }
+
+/* Komunikat na stronie odtwarzacza („Pominięto…”, „Koniec playlisty”) */
+#nlp-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 12%;
+  z-index: 2147483647;
+  max-width: min(90vw, 560px);
+  padding: 12px 18px;
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font: 600 15px/1.35 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+#nlp-toast.nlp-toast-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

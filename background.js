@@ -93,12 +93,19 @@ async function stopLoop() {
   await exitFullscreen();
 }
 
+// Komunikat dla karty pętli. Idzie przez storage, a nie tabs.sendMessage, bo zwykle zaraz po nim
+// karta przechodzi do kolejnego filmu i zwykła wiadomość by przepadła.
+function notify(tabId, text) {
+  return chrome.storage.local.set({ notice: { text, tabId, at: Date.now() } });
+}
+
 async function step(direction) {
   const { playlist, settings, state } = await load();
   const cur = indexOfCurrent(playlist, state);
   const next = pickIndex(playlist, settings, cur, direction);
   if (next === -1) {
     await stopLoop();
+    await notify(state.tabId, '■ Koniec playlisty');
     return { ok: true, stopped: true };
   }
   await playAt(next);
@@ -184,6 +191,9 @@ async function handle(msg, sender) {
       // Pozycja nie załadowała się mimo kilku przeładowań: pomijamy ją, także w trybie „jedna pozycja”.
       const { state } = await load();
       if (!state.active || sender.tab?.id !== state.tabId || msg.id !== state.currentId) return { ok: false };
+      const { playlist } = await load();
+      const title = playlist.find((p) => p.id === msg.id)?.title || msg.id;
+      await notify(state.tabId, `⚠ Pominięto „${title}”: nie udało się załadować`);
       return step('next');
     }
 
