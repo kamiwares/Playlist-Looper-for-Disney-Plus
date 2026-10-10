@@ -8,16 +8,16 @@
 <body>
   <!-- Teksty pochodzą z _locales/<język>/messages.json (atrybuty data-i18n*). Angielskie są tylko domyślną treścią. -->
   <header>
-    <h1>⟳ Playlist Looper</h1>
+    <h1><span class="icon" data-icon="repeat" aria-hidden="true"></span> Playlist Looper</h1>
     <div class="controls">
-      <button id="prev" data-i18n-title="prev" data-i18n-aria-label="prev">⏮</button>
-      <button id="toggle" class="primary">▶ Start</button>
-      <button id="next" data-i18n-title="next" data-i18n-aria-label="next">⏭</button>
+      <button id="prev" data-i18n-title="prev" data-i18n-aria-label="prev"><span class="icon" data-icon="backward-step" aria-hidden="true"></span></button>
+      <button id="toggle" class="primary"><span class="icon" data-icon="play" aria-hidden="true"></span><span class="label">Start</span></button>
+      <button id="next" data-i18n-title="next" data-i18n-aria-label="next"><span class="icon" data-icon="forward-step" aria-hidden="true"></span></button>
     </div>
   </header>
 
   <section class="add">
-    <button id="add-current" disabled>+ Add current title</button>
+    <button id="add-current" disabled><span class="icon" data-icon="plus" aria-hidden="true"></span><span class="label">Add current title</span></button>
     <form id="add-form">
       <input id="add-input" data-i18n-placeholder="addInputPlaceholder" autocomplete="off">
       <button type="submit" data-i18n="add">Add</button>
@@ -58,14 +58,14 @@
 
   <template id="item-tpl">
     <li draggable="true">
-      <span class="handle" data-i18n-title="drag">⠿</span>
+      <span class="handle" data-i18n-title="drag"><span class="icon" data-icon="grip-vertical" aria-hidden="true"></span></span>
       <span class="num"></span>
       <span class="title"></span>
       <span class="actions">
-        <button class="up" data-i18n-title="moveUp" data-i18n-aria-label="moveUp">↑</button>
-        <button class="down" data-i18n-title="moveDown" data-i18n-aria-label="moveDown">↓</button>
-        <button class="edit" data-i18n-title="rename" data-i18n-aria-label="rename">✎</button>
-        <button class="del" data-i18n-title="remove" data-i18n-aria-label="remove">✕</button>
+        <button class="up" data-i18n-title="moveUp" data-i18n-aria-label="moveUp"><span class="icon" data-icon="arrow-up" aria-hidden="true"></span></button>
+        <button class="down" data-i18n-title="moveDown" data-i18n-aria-label="moveDown"><span class="icon" data-icon="arrow-down" aria-hidden="true"></span></button>
+        <button class="edit" data-i18n-title="rename" data-i18n-aria-label="rename"><span class="icon" data-icon="pen" aria-hidden="true"></span></button>
+        <button class="del" data-i18n-title="remove" data-i18n-aria-label="remove"><span class="icon" data-icon="xmark" aria-hidden="true"></span></button>
       </span>
     </li>
   </template>

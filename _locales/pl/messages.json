@@ -4,11 +4,11 @@
 
   "prev": { "message": "Poprzedni" },
   "next": { "message": "Następny" },
-  "start": { "message": "▶ Start" },
-  "stop": { "message": "⏹ Stop" },
+  "start": { "message": "Start" },
+  "stop": { "message": "Stop" },
 
-  "addCurrent": { "message": "+ Dodaj bieżący film" },
-  "addCurrentDone": { "message": "✓ Bieżący film jest na liście" },
+  "addCurrent": { "message": "Dodaj bieżący film" },
+  "addCurrentDone": { "message": "Bieżący film jest na liście" },
   "addInputPlaceholder": { "message": "Link Netflix lub ID, np. 80100172" },
   "add": { "message": "Dodaj" },
   "emptyList": { "message": "Playlista jest pusta. Otwórz film na Netflixie i kliknij „Dodaj bieżący film”." },
@@ -20,7 +20,7 @@
   "modeOff": { "message": "Odtwórz raz i zatrzymaj" },
   "shuffle": { "message": "Kolejność losowa" },
   "fullscreenOption": { "message": "Pełny ekran podczas pętli" },
-  "fullscreenHint": { "message": "Po Starcie całe okno przechodzi w pełny ekran i zostaje w nim między filmami. Pełny ekran możesz też w każdej chwili włączyć lub wyłączyć przyciskiem „⛶ Pełny ekran” na stronie odtwarzacza. Esc wyłącza go do kolejnego Startu." },
+  "fullscreenHint": { "message": "Po Starcie całe okno przechodzi w pełny ekran i zostaje w nim między filmami. Pełny ekran możesz też w każdej chwili włączyć lub wyłączyć przyciskiem „Pełny ekran” na stronie odtwarzacza. Esc wyłącza go do kolejnego Startu." },
   "skipBefore": { "message": "Przejdź dalej" },
   "skipAfter": { "message": "s przed końcem" },
   "skipHint": { "message": "0 = do samego końca. Np. 60, żeby pomijać napisy końcowe." },
@@ -54,23 +54,23 @@
   },
   "statusCleared": { "message": "Wyczyszczono playlistę." },
 
-  "pageAdd": { "message": "+ Dodaj do pętli" },
-  "pageInLoop": { "message": "✓ W pętli" },
+  "pageAdd": { "message": "Dodaj do pętli" },
+  "pageInLoop": { "message": "W pętli" },
   "pageBadge": {
-    "message": "⟳ Pętla $POS$/$TOTAL$",
+    "message": "Pętla $POS$/$TOTAL$",
     "placeholders": { "pos": { "content": "$1" }, "total": { "content": "$2" } }
   },
-  "fsOn": { "message": "⛶ Pełny ekran" },
-  "fsOff": { "message": "✕ Pełny ekran" },
+  "fsOn": { "message": "Pełny ekran" },
+  "fsOff": { "message": "Wyłącz pełny ekran" },
   "fsOnTitle": { "message": "Włącz pełny ekran" },
   "fsOffTitle": { "message": "Wyłącz pełny ekran (Esc)" },
 
   "errNoItem": { "message": "Brak pozycji o tym numerze." },
   "errDuplicate": { "message": "Ta pozycja jest już na liście." },
   "errEmpty": { "message": "Playlista jest pusta." },
-  "noticeEnd": { "message": "■ Koniec playlisty" },
+  "noticeEnd": { "message": "Koniec playlisty" },
   "noticeSkipped": {
-    "message": "⚠ Pominięto „$TITLE$”: nie udało się załadować",
+    "message": "Pominięto „$TITLE$”: nie udało się załadować",
     "placeholders": { "title": { "content": "$1" } }
   }
 }

@@ -246,14 +246,31 @@
   // ---------- Pływający panel na stronie odtwarzacza ----------
   const root = document.createElement('div');
   root.id = 'nlp-root';
+  const ICON = '<span class="nlp-icon" aria-hidden="true"></span><span class="nlp-label"></span>';
   root.innerHTML =
-    '<span class="nlp-badge"></span>' +
-    '<button type="button" class="nlp-fs"></button>' +
-    '<button type="button" class="nlp-add"></button>';
+    `<span class="nlp-badge">${ICON}</span>` +
+    `<button type="button" class="nlp-fs">${ICON}</button>` +
+    `<button type="button" class="nlp-add">${ICON}</button>`;
   const badge = root.querySelector('.nlp-badge');
   const fsBtn = root.querySelector('.nlp-fs');
   const addBtn = root.querySelector('.nlp-add');
   let hideTimer = null;
+
+  // Ikony Font Awesome Free (icons/fa/*.svg) jako maska CSS; kopia setIcon() z shared/icons.js.
+  // Pliki są w web_accessible_resources, bo maskę ładuje strona netflix.com.
+  function setIcon(el, name) {
+    el.style.setProperty('--nlp-icon', `url("${chrome.runtime.getURL(`icons/fa/${name}.svg`)}")`);
+  }
+
+  // Ustawia ikonę i tekst elementu zbudowanego z ICON; ikonę podmienia tylko przy zmianie.
+  function setContent(el, iconName, text) {
+    const icon = el.querySelector('.nlp-icon');
+    if (icon.dataset.icon !== iconName) {
+      icon.dataset.icon = iconName;
+      setIcon(icon, iconName);
+    }
+    el.querySelector('.nlp-label').textContent = text;
+  }
 
   addBtn.addEventListener('click', async () => {
     const id = currentId();
@@ -268,7 +285,7 @@
 
   function updateFsBtn() {
     const fs = isFullscreen();
-    fsBtn.textContent = t(fs ? 'fsOff' : 'fsOn');
+    setContent(fsBtn, fs ? 'compress' : 'expand', t(fs ? 'fsOff' : 'fsOn'));
     fsBtn.title = t(fs ? 'fsOffTitle' : 'fsOnTitle');
   }
 
@@ -297,10 +314,11 @@
   const toast = document.createElement('div');
   toast.id = 'nlp-toast';
   toast.setAttribute('role', 'status');
+  toast.innerHTML = ICON;
   let toastTimer = null;
 
-  function showToast(text) {
-    toast.textContent = text;
+  function showToast(text, iconName) {
+    setContent(toast, iconName, text);
     mountInPlayer(toast);
     void toast.offsetWidth; // restart przejścia przy kolejnym komunikacie
     toast.classList.add('nlp-toast-visible');
@@ -319,7 +337,7 @@
     const key = 'nlp-notice-shown';
     if (sessionStorage.getItem(key) === String(notice.at)) return;
     sessionStorage.setItem(key, String(notice.at));
-    showToast(notice.text);
+    showToast(notice.text, notice.icon || 'triangle-exclamation');
   }
 
   function showUi() {
@@ -338,10 +356,10 @@
     const index = playlist.findIndex((p) => p.id === id);
     const inList = index !== -1;
     addBtn.disabled = inList;
-    addBtn.textContent = t(inList ? 'pageInLoop' : 'pageAdd');
+    setContent(addBtn, inList ? 'check' : 'plus', t(inList ? 'pageInLoop' : 'pageAdd'));
     const loop = isLoopTabFor(id);
     if (loop) {
-      badge.textContent = t('pageBadge', index + 1, playlist.length);
+      setContent(badge, 'repeat', t('pageBadge', index + 1, playlist.length));
       badge.hidden = false;
     } else {
       badge.hidden = true;
