@@ -14,6 +14,7 @@ Build a list, reorder it however you like, press **Start**. When an item ends, t
 - **Skip the credits**: move on *N* seconds before the end.
 - **Fullscreen across items**: the whole Chrome window goes fullscreen and stays that way between titles. Press Esc or F11 to leave.
 - **Self-healing playback**: if a title gets stuck loading, the extension tries to start it, reloads the page (up to 3 times) and finally skips it, so the loop keeps going. It also dismisses the "Are you still watching?" prompt.
+- **Autostart**: open `netflix.com/#autostart` (e.g. from the Windows Startup folder) and the loop starts on its own.
 - **Backup**: export and import the playlist as JSON.
 - **Status at a glance**: a `2/5` counter on the toolbar icon and a loop badge on the player page.
 
@@ -36,6 +37,14 @@ Works in Chrome 111+ and other Chromium-based browsers (Edge, Brave, Opera). You
 4. Press **▶ Start**. To start from a specific item, click it in the list.
 
 Options in the popup under **Settings**: loop mode, shuffle, fullscreen and the credits-skip offset.
+
+## Autostart
+
+Open `https://www.netflix.com/#autostart` and the loop starts right away in that tab, resuming from the last item. The `#autostart` marker is removed from the address, so reloading the page doesn't restart the loop.
+
+To start the loop together with Windows, put a shortcut to that link in your Startup folder (press <kbd>Win</kbd>+<kbd>R</kbd>, type `shell:startup`, then *New → Shortcut* and paste the link). It opens in your default browser, so Chrome has to be the default browser with the extension installed in the profile it opens.
+
+If your Netflix account has several profiles, Netflix may ask *Who's watching?* first. To skip it, enter the profile name under **Settings → Netflix profile for autostart**: the extension then clicks that profile on its own and starts the loop. Leave the field empty to pick the profile yourself. PIN-locked profiles still ask for the PIN.
 
 ## How it works
 
