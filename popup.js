@@ -1,4 +1,4 @@
-import { load, savePlaylist, updateSettings, parseNetflixId, placeholderTitle } from './shared/storage.js';
+import { load, savePlaylist, updateSettings, parseNetflixId, placeholderTitle, PLACEHOLDER_PREFIX } from './shared/storage.js';
 
 const $ = (sel) => document.querySelector(sel);
 const listEl = $('#list');
@@ -9,10 +9,14 @@ let data = { playlist: [], settings: {}, state: {} };
 let activeTab = null; // aktywna karta, jeśli to odtwarzacz Netflixa
 let editing = false;
 let dragFrom = null;
+let statusTimer = null;
 
+// Komunikat znika sam: zwykły po 4 s, błąd po 6 s, żeby zdążyć go przeczytać.
 function setStatus(text, isError = false) {
   statusEl.textContent = text || '';
   statusEl.classList.toggle('error', isError);
+  clearTimeout(statusTimer);
+  if (text) statusTimer = setTimeout(() => setStatus(''), isError ? 6000 : 4000);
 }
 
 async function send(msg) {
@@ -74,8 +78,18 @@ function renderList() {
       const li = tpl.content.firstElementChild.cloneNode(true);
       li.querySelector('.num').textContent = `${i + 1}.`;
       const titleEl = li.querySelector('.title');
+      const placeholder = item.title.startsWith(PLACEHOLDER_PREFIX);
       titleEl.textContent = item.title;
-      titleEl.title = `${item.title}\nID: ${item.id}`;
+      titleEl.title = placeholder
+        ? `ID: ${item.id}\nPrawdziwy tytuł uzupełni się sam po pierwszym włączeniu tej pozycji.`
+        : `${item.title}\nID: ${item.id}`;
+      titleEl.classList.toggle('placeholder', placeholder);
+      if (placeholder) {
+        const hint = document.createElement('small');
+        hint.className = 'hint';
+        hint.textContent = 'tytuł pojawi się po włączeniu';
+        titleEl.append(hint);
+      }
       li.classList.toggle('current', state.active && state.currentId === item.id);
       li.querySelector('.up').disabled = i === 0;
       li.querySelector('.down').disabled = i === playlist.length - 1;

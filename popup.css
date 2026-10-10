@@ -79,6 +79,9 @@ button.danger:hover { border-color: var(--accent); color: #ff6b6b; }
 .num { color: var(--muted); min-width: 18px; text-align: right; }
 .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .title input { width: 100%; padding: 2px 6px; }
+.title.placeholder { color: var(--muted); font-style: italic; }
+.title .hint { display: inline; margin-left: 6px; font-size: 11px; font-style: normal; color: var(--muted); }
+.title .hint::before { content: "· "; }
 
 .actions { display: flex; gap: 2px; opacity: 0; }
 #list li:hover .actions, #list li:focus-within .actions { opacity: 1; }
