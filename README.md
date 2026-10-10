@@ -1,4 +1,4 @@
-# Netflix Loop Playlist
+# Playlist Looper for Netflix
 
 A Chrome extension (Manifest V3) that plays your own playlist of Netflix movies and episodes on repeat.
 

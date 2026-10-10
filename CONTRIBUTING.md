@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in Netflix Loop Playlist! Bug reports, ideas and pull requests are all welcome.
+Thanks for your interest in Playlist Looper for Netflix! Bug reports, ideas and pull requests are all welcome.
 
 ## Reporting bugs
 
