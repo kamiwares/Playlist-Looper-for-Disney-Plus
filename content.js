@@ -24,6 +24,7 @@
   let state = { active: false, currentId: null, tabId: null };
   let myTabId = null;
   let notice = null; // ostatni komunikat od service workera: {text, tabId, at}
+  let settingsLoaded = false; // autostart czeka na ustawienia (nazwę profilu)
 
   let lastId = null;
   let video = null;
@@ -73,6 +74,7 @@
     if (d.settings) settings = { ...settings, ...d.settings };
     if (d.state) state = { ...state, ...d.state };
     notice = d.notice || null;
+    settingsLoaded = true;
     updateUi();
     maybeShowNotice();
   });
@@ -223,11 +225,56 @@
     }
   }
 
+  // ---------- Autostart z linku z #autostart ----------
+  // autostart.js zapisuje znacznik w sessionStorage. Wartość 'clicked' oznacza, że profil został
+  // już wybrany (Netflix mógł przy tym przeładować stronę). Znacznik usuwamy dopiero przy starcie pętli.
+  const AUTOSTART_KEY = 'nlp-autostart';
+  const PROFILE_WAIT_MS = 6000; // tyle czekamy, aż Netflix pokaże ekran „Kto ogląda?”
+  const AFTER_PROFILE_MS = 2500; // po kliknięciu profilu dajemy Netflixowi chwilę na przełączenie
+  const autostartAt = Date.now();
+  let profileClickedAt = 0;
+
+  function isVisible(el) {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+  }
+
+  // Szuka widocznego elementu z dokładnie tą nazwą profilu. Nie opieramy się na klasach CSS Netflixa,
+  // bo często się zmieniają; ukryte menu konta (też z nazwami profili) odpada przez isVisible().
+  function findProfile(name) {
+    const target = name.toLocaleLowerCase();
+    for (const el of document.querySelectorAll('a, button, [role="link"], [role="button"], span, p')) {
+      if (el.children.length > 2 || el.textContent.trim().toLocaleLowerCase() !== target || !isVisible(el)) continue;
+      return el.closest('a, button, [role="link"], [role="button"], [tabindex]') || el;
+    }
+    return null;
+  }
+
+  function handleAutostart() {
+    const flag = sessionStorage.getItem(AUTOSTART_KEY);
+    if (!flag || !settingsLoaded) return;
+    const name = String(settings.autoProfile || '').trim();
+    if (name && flag !== 'clicked') {
+      const el = findProfile(name);
+      if (el) {
+        el.click();
+        sessionStorage.setItem(AUTOSTART_KEY, 'clicked');
+        profileClickedAt = Date.now();
+        return;
+      }
+      if (Date.now() - autostartAt < PROFILE_WAIT_MS) return;
+    }
+    if (profileClickedAt && Date.now() - profileClickedAt < AFTER_PROFILE_MS) return;
+    sessionStorage.removeItem(AUTOSTART_KEY);
+    send({ type: 'START', here: true });
+  }
+
   function tick() {
     if (!alive()) {
       teardown();
       return;
     }
+    handleAutostart();
     const id = currentId();
     if (id !== lastId) {
       onIdChange(lastId, id);
@@ -395,12 +442,6 @@
     const v = document.querySelector('video');
     if (v !== video) attach(v);
   }).observe(document.documentElement, { childList: true, subtree: true });
-
-  // Link z #autostart (znacznik zapamiętał autostart.js): uruchamiamy pętlę w tej karcie.
-  if (sessionStorage.getItem('nlp-autostart')) {
-    sessionStorage.removeItem('nlp-autostart');
-    send({ type: 'START', here: true });
-  }
 
   timer = setInterval(tick, 1000);
   tick();
