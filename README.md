@@ -32,11 +32,35 @@ Works in Chrome 111+ and other Chromium-based browsers (Edge, Brave, Opera). You
 ## Usage
 
 1. Open a movie or an episode on Netflix (a `netflix.com/watch/…` page).
-2. Click **+ Add to loop** on the page, or **+ Add current title** in the extension popup.
+2. Click **Add to loop** on the page, or **Add current title** in the extension popup.
 3. Repeat for the other titles and arrange them in the popup.
-4. Press **▶ Start**. To start from a specific item, click it in the list.
+4. Press **Start**. To start from a specific item, click it in the list.
 
-Options in the popup under **Settings**: loop mode, shuffle, fullscreen and the credits-skip offset.
+Options in the popup under **Settings**: loop mode, shuffle, fullscreen, the Netflix profile for autostart and the credits-skip offset.
+
+## Playlist JSON
+
+Instead of adding titles one by one, you can paste a whole playlist as JSON: open **Backup** in the popup, paste the JSON into the text field and click **Import (replace)**. **Export** produces the same format, which makes it an easy way to back up a playlist or move it to another computer.
+
+The JSON is a list of items in play order. Each item has the Netflix `id` and, optionally, a `title`:
+
+```json
+[
+  { "id": "80000001", "title": "My favourite movie" },
+  { "id": "80000002", "title": "Series · S1:E1 Pilot" },
+  { "id": "80000003" }
+]
+```
+
+**Finding the ID:** open the movie or the episode on Netflix and copy the number from the address bar: `netflix.com/watch/`**`80000001`**. For a series, open the specific episode, because each episode has its own ID. A series page ID (`/title/<id>`) adds the whole series as one item that resumes wherever Netflix last left off.
+
+**Rules:**
+
+- **`id`** is required. It can be the number itself, written with or without quotes, or a full Netflix link (`/watch/…`, `/title/…` or a link with `?jbv=…`). The extension extracts the ID from the link.
+- **`title`** is optional and only changes what the playlist shows. Without it, the item appears as `Netflix #<id>` and the real title fills in automatically after it plays for the first time.
+- **Shorthand:** a plain list of IDs or links also works, e.g. `["80000001", "https://www.netflix.com/watch/80000002"]`.
+- **Clean-up:** duplicates and entries without a recognizable ID are skipped.
+- **Import replaces the current playlist.** Export it first if you want to keep it.
 
 ## Autostart
 
