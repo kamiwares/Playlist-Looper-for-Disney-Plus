@@ -77,6 +77,8 @@ Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for
 
 [MIT](LICENSE) © kamiwares
 
+UI icons in `icons/fa/` come from [Font Awesome Free](https://fontawesome.com) by Fonticons, Inc. and are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The SVG files are unmodified and keep their license header.
+
 ## Disclaimer
 
 This is an independent, unofficial project. It is not affiliated with, endorsed by or sponsored by Netflix, Inc. "Netflix" is a trademark of Netflix, Inc. and is used here only to describe what the extension works with.
