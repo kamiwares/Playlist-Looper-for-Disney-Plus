@@ -100,7 +100,7 @@ details select { width: 100%; margin-top: 4px; padding: 4px; }
 small { display: block; color: var(--muted); }
 textarea { width: 100%; margin: 8px 0 6px; padding: 6px; resize: vertical; }
 
-/* Ikony Font Awesome Free (icons/fa/*.svg) jako maska w kolorze tekstu */
+/* Font Awesome icons as currentColor masks */
 .icon {
   display: inline-block;
   width: 1em;

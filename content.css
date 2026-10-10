@@ -49,7 +49,7 @@
   opacity: 0.8;
 }
 
-/* Komunikat na stronie odtwarzacza („Pominięto…”, „Koniec playlisty”) */
+/* On-page notice */
 #nlp-toast {
   position: fixed;
   left: 50%;
@@ -74,7 +74,7 @@
   transform: translate(-50%, 0);
 }
 
-/* Ikony Font Awesome Free (icons/fa/*.svg) jako maska w kolorze tekstu */
+/* Font Awesome icons as currentColor masks */
 #nlp-root .nlp-badge,
 #nlp-root .nlp-fs,
 #nlp-root .nlp-add,

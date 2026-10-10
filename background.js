@@ -1,7 +1,7 @@
 import { load, savePlaylist, updateState, watchUrl, placeholderTitle } from './shared/storage.js';
 import { t } from './shared/i18n.js';
 
-// Zabezpieczenie przed podwójnym przejściem (np. 'ended' + timeupdate w tej samej chwili).
+// Debounces duplicate end signals.
 let lastAdvanceAt = 0;
 
 function indexOfCurrent(playlist, state) {
@@ -10,7 +10,7 @@ function indexOfCurrent(playlist, state) {
   return Math.max(0, Math.min(state.index, playlist.length - 1));
 }
 
-// direction: 'auto' (koniec filmu), 'next', 'prev'. Zwraca -1, gdy należy się zatrzymać.
+// direction: 'auto' | 'next' | 'prev'. Returns -1 to stop.
 function pickIndex(playlist, settings, cur, direction) {
   const n = playlist.length;
   if (n === 0) return -1;
@@ -37,15 +37,14 @@ async function tabExists(tabId) {
   }
 }
 
-// Pełny ekran całego okna (jak F11), bo requestFullscreen() na stronie wymaga kliknięcia
-// i znika przy każdej nawigacji do kolejnego filmu.
+// Window fullscreen survives navigation; page fullscreen needs a user gesture.
 async function enterFullscreen() {
   const { settings, state } = await load();
   if (!settings.fullscreen || state.fullscreenPaused || state.tabId == null) return;
   const { windowId } = await chrome.tabs.get(state.tabId);
   const win = await chrome.windows.get(windowId);
   if (state.fullscreenWindowId === windowId && win.state !== 'fullscreen') {
-    // Użytkownik sam wyszedł z pełnego ekranu (F11 lub Esc): nie wymuszamy go ponownie.
+    // User left fullscreen manually: don't force it back.
     await updateState({ fullscreenPaused: true, fullscreenWindowId: null, prevWindowState: null });
     return;
   }
@@ -60,7 +59,7 @@ async function exitFullscreen() {
   try {
     await chrome.windows.update(state.fullscreenWindowId, { state: state.prevWindowState || 'normal' });
   } catch {
-    // okno mogło zostać zamknięte
+    // window may be closed
   }
   await updateState({ fullscreenWindowId: null, prevWindowState: null });
 }
@@ -94,8 +93,7 @@ async function stopLoop() {
   await exitFullscreen();
 }
 
-// Komunikat dla karty pętli. Idzie przez storage, a nie tabs.sendMessage, bo zwykle zaraz po nim
-// karta przechodzi do kolejnego filmu i zwykła wiadomość by przepadła.
+// Via storage: the tab usually navigates right after, so a direct message would be lost.
 function notify(tabId, text, icon) {
   return chrome.storage.local.set({ notice: { text, icon, tabId, at: Date.now() } });
 }
@@ -134,7 +132,7 @@ async function handle(msg, sender) {
       if (playlist.length === 0) return { ok: false, error: t('errEmpty') };
       const index = Number.isInteger(msg.index) ? msg.index : indexOfCurrent(playlist, state);
       await updateState({ fullscreenPaused: false });
-      // here: start z linku z #autostart, pętla gra w karcie nadawcy.
+      // here: started from a #autostart link, play in the sender's tab.
       await playAt(index, msg.here ? sender.tab?.id : msg.tabId);
       return { ok: true };
     }
@@ -152,7 +150,6 @@ async function handle(msg, sender) {
     }
 
     case 'TOGGLE_FULLSCREEN': {
-      // Przycisk pełnego ekranu na stronie odtwarzacza, na dowolnej karcie Netflixa.
       const tab = sender.tab;
       if (!tab) return { ok: false };
       const { state } = await load();
@@ -160,10 +157,10 @@ async function handle(msg, sender) {
       const win = await chrome.windows.get(tab.windowId);
       if (win.state === 'fullscreen') {
         if (state.fullscreenWindowId === win.id) {
-          if (isLoopTab) await updateState({ fullscreenPaused: true }); // jak Esc: nie wracamy do kolejnego Startu
+          if (isLoopTab) await updateState({ fullscreenPaused: true }); // like Esc
           await exitFullscreen();
         } else {
-          await chrome.windows.update(win.id, { state: 'maximized' }); // F11 włączone ręcznie, poprzedni stan nieznany
+          await chrome.windows.update(win.id, { state: 'maximized' }); // manual F11, previous state unknown
         }
       } else {
         await updateState({
@@ -190,7 +187,7 @@ async function handle(msg, sender) {
     }
 
     case 'LOAD_FAILED': {
-      // Pozycja nie załadowała się mimo kilku przeładowań: pomijamy ją, także w trybie „jedna pozycja”.
+      // Skip items that keep failing to load, even in 'one' mode.
       const { state } = await load();
       if (!state.active || sender.tab?.id !== state.tabId || msg.id !== state.currentId) return { ok: false };
       const { playlist } = await load();
@@ -228,7 +225,7 @@ async function refreshBadge() {
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area !== 'local') return;
   refreshBadge();
-  // Przełączenie opcji pełnego ekranu w trakcie trwającej pętli działa od razu.
+  // Apply the fullscreen setting immediately during a loop.
   const before = changes.settings?.oldValue?.fullscreen;
   const after = changes.settings?.newValue?.fullscreen;
   if (changes.settings && before !== after) {
