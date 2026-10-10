@@ -1,0 +1,76 @@
+{
+  "extName": { "message": "Playlist Looper for Netflix" },
+  "extDescription": { "message": "Własna playlista filmów i odcinków z Netflixa odtwarzana w pętli." },
+
+  "prev": { "message": "Poprzedni" },
+  "next": { "message": "Następny" },
+  "start": { "message": "▶ Start" },
+  "stop": { "message": "⏹ Stop" },
+
+  "addCurrent": { "message": "+ Dodaj bieżący film" },
+  "addCurrentDone": { "message": "✓ Bieżący film jest na liście" },
+  "addInputPlaceholder": { "message": "Link Netflix lub ID, np. 80100172" },
+  "add": { "message": "Dodaj" },
+  "emptyList": { "message": "Playlista jest pusta. Otwórz film na Netflixie i kliknij „Dodaj bieżący film”." },
+
+  "settings": { "message": "Ustawienia" },
+  "mode": { "message": "Tryb" },
+  "modeAll": { "message": "Zapętlaj całą listę" },
+  "modeOne": { "message": "Zapętlaj jedną pozycję" },
+  "modeOff": { "message": "Odtwórz raz i zatrzymaj" },
+  "shuffle": { "message": "Kolejność losowa" },
+  "fullscreenOption": { "message": "Pełny ekran podczas pętli" },
+  "fullscreenHint": { "message": "Po Starcie całe okno przechodzi w pełny ekran i zostaje w nim między filmami. Pełny ekran możesz też w każdej chwili włączyć lub wyłączyć przyciskiem „⛶ Pełny ekran” na stronie odtwarzacza. Esc wyłącza go do kolejnego Startu." },
+  "skipBefore": { "message": "Przejdź dalej" },
+  "skipAfter": { "message": "s przed końcem" },
+  "skipHint": { "message": "0 = do samego końca. Np. 60, żeby pomijać napisy końcowe." },
+
+  "backup": { "message": "Kopia zapasowa" },
+  "backupPlaceholder": { "message": "JSON playlisty" },
+  "export": { "message": "Eksportuj" },
+  "import": { "message": "Importuj (zastąp)" },
+  "clear": { "message": "Wyczyść listę" },
+  "clearConfirm": { "message": "Na pewno?" },
+
+  "drag": { "message": "Przeciągnij, żeby zmienić kolejność" },
+  "moveUp": { "message": "W górę" },
+  "moveDown": { "message": "W dół" },
+  "rename": { "message": "Zmień nazwę" },
+  "remove": { "message": "Usuń" },
+  "placeholderTooltip": {
+    "message": "ID: $ID$\nPrawdziwy tytuł uzupełni się sam po pierwszym włączeniu tej pozycji.",
+    "placeholders": { "id": { "content": "$1" } }
+  },
+  "placeholderHint": { "message": "tytuł pojawi się po włączeniu" },
+
+  "statusAdded": { "message": "Dodano do playlisty." },
+  "statusBadLink": { "message": "Nie rozpoznano linku. Wklej adres netflix.com/watch/… albo samo ID." },
+  "statusCopied": { "message": "Skopiowano playlistę do schowka." },
+  "statusInTextarea": { "message": "Playlista jest w polu tekstowym." },
+  "statusBadJson": { "message": "Niepoprawny JSON: oczekiwano listy pozycji." },
+  "statusImported": {
+    "message": "Zaimportowano: $COUNT$",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "statusCleared": { "message": "Wyczyszczono playlistę." },
+
+  "pageAdd": { "message": "+ Dodaj do pętli" },
+  "pageInLoop": { "message": "✓ W pętli" },
+  "pageBadge": {
+    "message": "⟳ Pętla $POS$/$TOTAL$",
+    "placeholders": { "pos": { "content": "$1" }, "total": { "content": "$2" } }
+  },
+  "fsOn": { "message": "⛶ Pełny ekran" },
+  "fsOff": { "message": "✕ Pełny ekran" },
+  "fsOnTitle": { "message": "Włącz pełny ekran" },
+  "fsOffTitle": { "message": "Wyłącz pełny ekran (Esc)" },
+
+  "errNoItem": { "message": "Brak pozycji o tym numerze." },
+  "errDuplicate": { "message": "Ta pozycja jest już na liście." },
+  "errEmpty": { "message": "Playlista jest pusta." },
+  "noticeEnd": { "message": "■ Koniec playlisty" },
+  "noticeSkipped": {
+    "message": "⚠ Pominięto „$TITLE$”: nie udało się załadować",
+    "placeholders": { "title": { "content": "$1" } }
+  }
+}

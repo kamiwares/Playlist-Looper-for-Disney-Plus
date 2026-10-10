@@ -2,6 +2,7 @@
 // i sam śledzi zmiany URL oraz podmiany elementu <video>.
 (() => {
   const PLACEHOLDER_PREFIX = 'Netflix #';
+  const t = (key, ...subs) => chrome.i18n.getMessage(key, subs.map(String)) || key; // kopia z shared/i18n.js
   // Ekran końcowy Netflixa (następny odcinek / rekomendacje). Selektory mogą się zmienić,
   // dlatego to tylko dodatkowy sygnał obok 'ended' i zmiany URL.
   const POSTPLAY_SELECTOR = [
@@ -267,8 +268,8 @@
 
   function updateFsBtn() {
     const fs = isFullscreen();
-    fsBtn.textContent = fs ? '✕ Pełny ekran' : '⛶ Pełny ekran';
-    fsBtn.title = fs ? 'Wyłącz pełny ekran (Esc)' : 'Włącz pełny ekran';
+    fsBtn.textContent = t(fs ? 'fsOff' : 'fsOn');
+    fsBtn.title = t(fs ? 'fsOffTitle' : 'fsOnTitle');
   }
 
   fsBtn.addEventListener('click', () => {
@@ -337,10 +338,10 @@
     const index = playlist.findIndex((p) => p.id === id);
     const inList = index !== -1;
     addBtn.disabled = inList;
-    addBtn.textContent = inList ? '✓ W pętli' : '+ Dodaj do pętli';
+    addBtn.textContent = t(inList ? 'pageInLoop' : 'pageAdd');
     const loop = isLoopTabFor(id);
     if (loop) {
-      badge.textContent = `⟳ Pętla ${index + 1}/${playlist.length}`;
+      badge.textContent = t('pageBadge', index + 1, playlist.length);
       badge.hidden = false;
     } else {
       badge.hidden = true;

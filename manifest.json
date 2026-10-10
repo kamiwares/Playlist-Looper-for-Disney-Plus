@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Playlist Looper for Netflix",
+  "name": "__MSG_extName__",
   "version": "1.0.0",
-  "description": "Własna playlista filmów i odcinków z Netflixa odtwarzana w pętli.",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "permissions": ["storage"],
   "host_permissions": ["*://www.netflix.com/*"],
   "background": {
@@ -10,7 +11,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Playlist Looper for Netflix",
+    "default_title": "__MSG_extName__",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

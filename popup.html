@@ -1,70 +1,71 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Playlist Looper for Netflix</title>
+  <title data-i18n="extName">Playlist Looper for Netflix</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+  <!-- Teksty pochodzą z _locales/<język>/messages.json (atrybuty data-i18n*). Angielskie są tylko domyślną treścią. -->
   <header>
     <h1>⟳ Playlist Looper</h1>
     <div class="controls">
-      <button id="prev" title="Poprzedni">⏮</button>
+      <button id="prev" data-i18n-title="prev" data-i18n-aria-label="prev">⏮</button>
       <button id="toggle" class="primary">▶ Start</button>
-      <button id="next" title="Następny">⏭</button>
+      <button id="next" data-i18n-title="next" data-i18n-aria-label="next">⏭</button>
     </div>
   </header>
 
   <section class="add">
-    <button id="add-current" disabled>+ Dodaj bieżący film</button>
+    <button id="add-current" disabled>+ Add current title</button>
     <form id="add-form">
-      <input id="add-input" placeholder="Link Netflix lub ID, np. 80100172" autocomplete="off">
-      <button type="submit">Dodaj</button>
+      <input id="add-input" data-i18n-placeholder="addInputPlaceholder" autocomplete="off">
+      <button type="submit" data-i18n="add">Add</button>
     </form>
   </section>
 
   <p id="status" role="status"></p>
 
   <ol id="list"></ol>
-  <p id="empty" hidden>Playlista jest pusta. Otwórz film na Netflixie i kliknij „Dodaj bieżący film”.</p>
+  <p id="empty" hidden data-i18n="emptyList">The playlist is empty.</p>
 
   <details>
-    <summary>Ustawienia</summary>
-    <label>Tryb
+    <summary data-i18n="settings">Settings</summary>
+    <label><span data-i18n="mode">Mode</span>
       <select id="loopMode">
-        <option value="all">Zapętlaj całą listę</option>
-        <option value="one">Zapętlaj jedną pozycję</option>
-        <option value="off">Odtwórz raz i zatrzymaj</option>
+        <option value="all" data-i18n="modeAll">Loop the whole list</option>
+        <option value="one" data-i18n="modeOne">Loop a single item</option>
+        <option value="off" data-i18n="modeOff">Play once and stop</option>
       </select>
     </label>
-    <label class="row"><input type="checkbox" id="shuffle"> Kolejność losowa</label>
-    <label class="row"><input type="checkbox" id="fullscreen"> Pełny ekran podczas pętli</label>
-    <small>Po Starcie całe okno przechodzi w pełny ekran i zostaje w nim między filmami. Pełny ekran możesz też w każdej chwili włączyć lub wyłączyć przyciskiem „⛶ Pełny ekran” na stronie odtwarzacza. Esc wyłącza go do kolejnego Startu.</small>
-    <label>Przejdź dalej <input type="number" id="creditsOffset" min="0" max="900" step="1"> s przed końcem
-      <small>0 = do samego końca. Np. 60, żeby pomijać napisy końcowe.</small>
+    <label class="row"><input type="checkbox" id="shuffle"> <span data-i18n="shuffle">Shuffle</span></label>
+    <label class="row"><input type="checkbox" id="fullscreen"> <span data-i18n="fullscreenOption">Fullscreen during the loop</span></label>
+    <small data-i18n="fullscreenHint"></small>
+    <label><span data-i18n="skipBefore">Move on</span> <input type="number" id="creditsOffset" min="0" max="900" step="1"> <span data-i18n="skipAfter">s before the end</span>
+      <small data-i18n="skipHint"></small>
     </label>
   </details>
 
   <details>
-    <summary>Kopia zapasowa</summary>
-    <textarea id="io" rows="5" placeholder="JSON playlisty"></textarea>
+    <summary data-i18n="backup">Backup</summary>
+    <textarea id="io" rows="5" data-i18n-placeholder="backupPlaceholder"></textarea>
     <div class="row">
-      <button id="export">Eksportuj</button>
-      <button id="import">Importuj (zastąp)</button>
-      <button id="clear" class="danger">Wyczyść listę</button>
+      <button id="export" data-i18n="export">Export</button>
+      <button id="import" data-i18n="import">Import (replace)</button>
+      <button id="clear" class="danger" data-i18n="clear">Clear list</button>
     </div>
   </details>
 
   <template id="item-tpl">
     <li draggable="true">
-      <span class="handle" title="Przeciągnij">⠿</span>
+      <span class="handle" data-i18n-title="drag">⠿</span>
       <span class="num"></span>
       <span class="title"></span>
       <span class="actions">
-        <button class="up" title="W górę">↑</button>
-        <button class="down" title="W dół">↓</button>
-        <button class="edit" title="Zmień nazwę">✎</button>
-        <button class="del" title="Usuń">✕</button>
+        <button class="up" data-i18n-title="moveUp" data-i18n-aria-label="moveUp">↑</button>
+        <button class="down" data-i18n-title="moveDown" data-i18n-aria-label="moveDown">↓</button>
+        <button class="edit" data-i18n-title="rename" data-i18n-aria-label="rename">✎</button>
+        <button class="del" data-i18n-title="remove" data-i18n-aria-label="remove">✕</button>
       </span>
     </li>
   </template>

@@ -1,4 +1,5 @@
 import { load, savePlaylist, updateSettings, parseNetflixId, placeholderTitle, PLACEHOLDER_PREFIX } from './shared/storage.js';
+import { t, localize } from './shared/i18n.js';
 
 const $ = (sel) => document.querySelector(sel);
 const listEl = $('#list');
@@ -81,13 +82,13 @@ function renderList() {
       const placeholder = item.title.startsWith(PLACEHOLDER_PREFIX);
       titleEl.textContent = item.title;
       titleEl.title = placeholder
-        ? `ID: ${item.id}\nPrawdziwy tytuł uzupełni się sam po pierwszym włączeniu tej pozycji.`
+        ? t('placeholderTooltip', item.id)
         : `${item.title}\nID: ${item.id}`;
       titleEl.classList.toggle('placeholder', placeholder);
       if (placeholder) {
         const hint = document.createElement('small');
         hint.className = 'hint';
-        hint.textContent = 'tytuł pojawi się po włączeniu';
+        hint.textContent = t('placeholderHint');
         titleEl.append(hint);
       }
       li.classList.toggle('current', state.active && state.currentId === item.id);
@@ -140,7 +141,7 @@ function render() {
   renderList();
 
   const toggle = $('#toggle');
-  toggle.textContent = state.active ? '⏹ Stop' : '▶ Start';
+  toggle.textContent = t(state.active ? 'stop' : 'start');
   toggle.disabled = playlist.length === 0;
   $('#prev').disabled = $('#next').disabled = playlist.length === 0;
 
@@ -153,7 +154,7 @@ function render() {
   const currentId = activeTab ? parseNetflixId(activeTab.url) : null;
   const already = currentId && playlist.some((p) => p.id === currentId);
   addCurrent.disabled = !currentId || already;
-  addCurrent.textContent = already ? '✓ Bieżący film jest na liście' : '+ Dodaj bieżący film';
+  addCurrent.textContent = t(already ? 'addCurrentDone' : 'addCurrent');
 }
 
 async function refresh() {
@@ -163,7 +164,7 @@ async function refresh() {
 
 async function addById(id, title) {
   const res = await send({ type: 'ADD', id, title: title || placeholderTitle(id) });
-  if (res?.ok) setStatus('Dodano do playlisty.');
+  if (res?.ok) setStatus(t('statusAdded'));
   return res;
 }
 
@@ -193,7 +194,7 @@ $('#add-form').addEventListener('submit', async (e) => {
   const input = $('#add-input');
   const id = parseNetflixId(input.value);
   if (!id) {
-    setStatus('Nie rozpoznano linku. Wklej adres netflix.com/watch/… albo samo ID.', true);
+    setStatus(t('statusBadLink'), true);
     return;
   }
   const res = await addById(id);
@@ -214,9 +215,9 @@ $('#export').addEventListener('click', async () => {
   $('#io').value = json;
   try {
     await navigator.clipboard.writeText(json);
-    setStatus('Skopiowano playlistę do schowka.');
+    setStatus(t('statusCopied'));
   } catch {
-    setStatus('Playlista jest w polu tekstowym.');
+    setStatus(t('statusInTextarea'));
   }
 });
 
@@ -226,7 +227,7 @@ $('#import').addEventListener('click', async () => {
     parsed = JSON.parse($('#io').value);
     if (!Array.isArray(parsed)) throw new Error();
   } catch {
-    setStatus('Niepoprawny JSON: oczekiwano listy pozycji.', true);
+    setStatus(t('statusBadJson'), true);
     return;
   }
   const seen = new Set();
@@ -239,27 +240,31 @@ $('#import').addEventListener('click', async () => {
     pl.push({ id, title, addedAt: Date.now() });
   }
   await savePlaylist(pl);
-  setStatus(`Zaimportowano ${pl.length} pozycji.`);
+  setStatus(t('statusImported', pl.length));
 });
 
 let clearArmed = false;
 $('#clear').addEventListener('click', async (e) => {
   if (!clearArmed) {
     clearArmed = true;
-    e.target.textContent = 'Na pewno?';
-    setTimeout(() => { clearArmed = false; e.target.textContent = 'Wyczyść listę'; }, 3000);
+    e.target.textContent = t('clearConfirm');
+    setTimeout(() => { clearArmed = false; e.target.textContent = t('clear'); }, 3000);
     return;
   }
   clearArmed = false;
-  e.target.textContent = 'Wyczyść listę';
+  e.target.textContent = t('clear');
   await send({ type: 'STOP' });
   await savePlaylist([]);
-  setStatus('Wyczyszczono playlistę.');
+  setStatus(t('statusCleared'));
 });
 
 chrome.storage.onChanged.addListener((_changes, area) => {
   if (area === 'local') refresh();
 });
+
+document.documentElement.lang = chrome.i18n.getUILanguage();
+localize();
+localize(tpl.content); // szablon pozycji listy, zanim zostanie sklonowany
 
 (async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

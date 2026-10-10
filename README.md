@@ -4,7 +4,7 @@ A Chrome extension (Manifest V3) that plays your own playlist of Netflix movies 
 
 Build a list, reorder it however you like, press **Start**. When an item ends, the next one starts. After the last item, it goes back to the first.
 
-> The extension's interface is currently in Polish. English translations are welcome, see [Contributing](#contributing).
+> The interface is available in English and Polish and follows your browser's language. New translations are welcome, see [Contributing](#contributing).
 
 ## Features
 
@@ -31,11 +31,11 @@ Works in Chrome 111+ and other Chromium-based browsers (Edge, Brave, Opera). You
 ## Usage
 
 1. Open a movie or an episode on Netflix (a `netflix.com/watch/…` page).
-2. Click **+ Dodaj do pętli** on the page, or **+ Dodaj bieżący film** in the extension popup.
+2. Click **+ Add to loop** on the page, or **+ Add current title** in the extension popup.
 3. Repeat for the other titles and arrange them in the popup.
 4. Press **▶ Start**. To start from a specific item, click it in the list.
 
-Options in the popup under **Ustawienia** (settings): loop mode, shuffle, fullscreen and the credits-skip offset.
+Options in the popup under **Settings**: loop mode, shuffle, fullscreen and the credits-skip offset.
 
 ## How it works
 

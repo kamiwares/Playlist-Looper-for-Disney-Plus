@@ -33,7 +33,7 @@ node --input-type=module --check < shared/storage.js
 - **Netflix specifics:** never seek by setting `video.currentTime`, because it triggers Netflix error M7375. Treat Netflix DOM selectors as fragile: use them as extra signals with a fallback, never as the only mechanism.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/), e.g. `feat: …`, `fix: …`, `docs: …`, `chore: …`.
 - **Branches:** one feature or fix per branch, named like `feature/<name>` or `fix/<name>`, merged into `main` through a pull request.
-- **Translations:** the UI is currently in Polish. Contributions moving strings to [`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n) with English as an additional locale are very welcome.
+- **Translations:** all UI text lives in `_locales/<language>/messages.json` ([`chrome.i18n`](https://developer.chrome.com/docs/extensions/reference/api/i18n)). To add a language, copy `_locales/en/messages.json` to `_locales/<code>/messages.json` and translate the `message` values; keep the keys and placeholders unchanged. In HTML, mark text with `data-i18n`, `data-i18n-title`, `data-i18n-placeholder` or `data-i18n-aria-label`; in scripts, use `t(key, ...substitutions)`.
 
 ## License
 
