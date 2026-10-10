@@ -73,3 +73,31 @@
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* Ikony Font Awesome Free (icons/fa/*.svg) jako maska w kolorze tekstu */
+#nlp-root .nlp-badge,
+#nlp-root .nlp-fs,
+#nlp-root .nlp-add,
+#nlp-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#nlp-root .nlp-badge[hidden] {
+  display: none;
+}
+
+#nlp-root .nlp-icon,
+#nlp-toast .nlp-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--nlp-icon) center / contain no-repeat;
+  mask: var(--nlp-icon) center / contain no-repeat;
+}
+
+#nlp-root .nlp-badge .nlp-icon { color: #ff6b6b; }
+#nlp-toast .nlp-icon { width: 1.15em; height: 1.15em; color: #ffb020; }

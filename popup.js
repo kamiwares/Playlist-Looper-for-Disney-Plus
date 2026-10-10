@@ -1,5 +1,6 @@
 import { load, savePlaylist, updateSettings, parseNetflixId, placeholderTitle, PLACEHOLDER_PREFIX } from './shared/storage.js';
 import { t, localize } from './shared/i18n.js';
+import { setIcon, applyIcons } from './shared/icons.js';
 
 const $ = (sel) => document.querySelector(sel);
 const listEl = $('#list');
@@ -141,7 +142,8 @@ function render() {
   renderList();
 
   const toggle = $('#toggle');
-  toggle.textContent = t(state.active ? 'stop' : 'start');
+  toggle.querySelector('.label').textContent = t(state.active ? 'stop' : 'start');
+  setIcon(toggle.querySelector('.icon'), state.active ? 'stop' : 'play');
   toggle.disabled = playlist.length === 0;
   $('#prev').disabled = $('#next').disabled = playlist.length === 0;
 
@@ -154,7 +156,8 @@ function render() {
   const currentId = activeTab ? parseNetflixId(activeTab.url) : null;
   const already = currentId && playlist.some((p) => p.id === currentId);
   addCurrent.disabled = !currentId || already;
-  addCurrent.textContent = t(already ? 'addCurrentDone' : 'addCurrent');
+  addCurrent.querySelector('.label').textContent = t(already ? 'addCurrentDone' : 'addCurrent');
+  setIcon(addCurrent.querySelector('.icon'), already ? 'check' : 'plus');
 }
 
 async function refresh() {
@@ -265,6 +268,8 @@ chrome.storage.onChanged.addListener((_changes, area) => {
 document.documentElement.lang = chrome.i18n.getUILanguage();
 localize();
 localize(tpl.content); // szablon pozycji listy, zanim zostanie sklonowany
+applyIcons();
+applyIcons(tpl.content);
 
 (async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

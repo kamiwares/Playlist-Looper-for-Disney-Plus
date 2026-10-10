@@ -96,8 +96,8 @@ async function stopLoop() {
 
 // Komunikat dla karty pętli. Idzie przez storage, a nie tabs.sendMessage, bo zwykle zaraz po nim
 // karta przechodzi do kolejnego filmu i zwykła wiadomość by przepadła.
-function notify(tabId, text) {
-  return chrome.storage.local.set({ notice: { text, tabId, at: Date.now() } });
+function notify(tabId, text, icon) {
+  return chrome.storage.local.set({ notice: { text, icon, tabId, at: Date.now() } });
 }
 
 async function step(direction) {
@@ -106,7 +106,7 @@ async function step(direction) {
   const next = pickIndex(playlist, settings, cur, direction);
   if (next === -1) {
     await stopLoop();
-    await notify(state.tabId, t('noticeEnd'));
+    await notify(state.tabId, t('noticeEnd'), 'flag-checkered');
     return { ok: true, stopped: true };
   }
   await playAt(next);
@@ -194,7 +194,7 @@ async function handle(msg, sender) {
       if (!state.active || sender.tab?.id !== state.tabId || msg.id !== state.currentId) return { ok: false };
       const { playlist } = await load();
       const title = playlist.find((p) => p.id === msg.id)?.title || msg.id;
-      await notify(state.tabId, t('noticeSkipped', title));
+      await notify(state.tabId, t('noticeSkipped', title), 'triangle-exclamation');
       return step('next');
     }
 

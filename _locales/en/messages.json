@@ -4,11 +4,11 @@
 
   "prev": { "message": "Previous" },
   "next": { "message": "Next" },
-  "start": { "message": "▶ Start" },
-  "stop": { "message": "⏹ Stop" },
+  "start": { "message": "Start" },
+  "stop": { "message": "Stop" },
 
-  "addCurrent": { "message": "+ Add current title" },
-  "addCurrentDone": { "message": "✓ Current title is in the playlist" },
+  "addCurrent": { "message": "Add current title" },
+  "addCurrentDone": { "message": "Current title is in the playlist" },
   "addInputPlaceholder": { "message": "Netflix link or ID, e.g. 80100172" },
   "add": { "message": "Add" },
   "emptyList": { "message": "The playlist is empty. Open a title on Netflix and click “Add current title”." },
@@ -20,7 +20,7 @@
   "modeOff": { "message": "Play once and stop" },
   "shuffle": { "message": "Shuffle" },
   "fullscreenOption": { "message": "Fullscreen during the loop" },
-  "fullscreenHint": { "message": "After Start, the whole window goes fullscreen and stays that way between titles. You can also toggle it at any time with the “⛶ Fullscreen” button on the player page. Esc turns it off until the next Start." },
+  "fullscreenHint": { "message": "After Start, the whole window goes fullscreen and stays that way between titles. You can also toggle it at any time with the “Fullscreen” button on the player page. Esc turns it off until the next Start." },
   "skipBefore": { "message": "Move on" },
   "skipAfter": { "message": "s before the end" },
   "skipHint": { "message": "0 = play to the very end. E.g. 60 to skip the end credits." },
@@ -54,23 +54,23 @@
   },
   "statusCleared": { "message": "Playlist cleared." },
 
-  "pageAdd": { "message": "+ Add to loop" },
-  "pageInLoop": { "message": "✓ In the loop" },
+  "pageAdd": { "message": "Add to loop" },
+  "pageInLoop": { "message": "In the loop" },
   "pageBadge": {
-    "message": "⟳ Loop $POS$/$TOTAL$",
+    "message": "Loop $POS$/$TOTAL$",
     "placeholders": { "pos": { "content": "$1" }, "total": { "content": "$2" } }
   },
-  "fsOn": { "message": "⛶ Fullscreen" },
-  "fsOff": { "message": "✕ Fullscreen" },
+  "fsOn": { "message": "Fullscreen" },
+  "fsOff": { "message": "Exit fullscreen" },
   "fsOnTitle": { "message": "Turn on fullscreen" },
   "fsOffTitle": { "message": "Turn off fullscreen (Esc)" },
 
   "errNoItem": { "message": "There is no item with this number." },
   "errDuplicate": { "message": "This item is already in the playlist." },
   "errEmpty": { "message": "The playlist is empty." },
-  "noticeEnd": { "message": "■ End of playlist" },
+  "noticeEnd": { "message": "End of playlist" },
   "noticeSkipped": {
-    "message": "⚠ Skipped “$TITLE$”: it failed to load",
+    "message": "Skipped “$TITLE$”: it failed to load",
     "placeholders": { "title": { "content": "$1" } }
   }
 }
