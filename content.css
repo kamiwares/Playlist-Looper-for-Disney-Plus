@@ -18,6 +18,7 @@
 }
 
 #nlp-root .nlp-badge,
+#nlp-root .nlp-exit-fs,
 #nlp-root .nlp-add {
   padding: 8px 12px;
   border-radius: 6px;
@@ -26,15 +27,18 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-#nlp-root .nlp-badge[hidden] {
+#nlp-root .nlp-badge[hidden],
+#nlp-root .nlp-exit-fs[hidden] {
   display: none;
 }
 
+#nlp-root .nlp-exit-fs,
 #nlp-root .nlp-add {
   cursor: pointer;
   font: inherit;
 }
 
+#nlp-root .nlp-exit-fs:hover,
 #nlp-root .nlp-add:not(:disabled):hover {
   background: #e50914;
   border-color: #e50914;

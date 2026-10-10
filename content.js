@@ -199,8 +199,12 @@
   // ---------- Pływający panel na stronie odtwarzacza ----------
   const root = document.createElement('div');
   root.id = 'nlp-root';
-  root.innerHTML = '<span class="nlp-badge"></span><button type="button" class="nlp-add"></button>';
+  root.innerHTML =
+    '<span class="nlp-badge"></span>' +
+    '<button type="button" class="nlp-exit-fs" title="Wyłącz pełny ekran (Esc)">✕ Pełny ekran</button>' +
+    '<button type="button" class="nlp-add"></button>';
   const badge = root.querySelector('.nlp-badge');
+  const exitFsBtn = root.querySelector('.nlp-exit-fs');
   const addBtn = root.querySelector('.nlp-add');
   let hideTimer = null;
 
@@ -208,6 +212,10 @@
     const id = currentId();
     if (!id) return;
     await chrome.runtime.sendMessage({ type: 'ADD', id, title: readTitle() || titleCache[id] });
+  });
+
+  exitFsBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'EXIT_FULLSCREEN' }).catch(() => {});
   });
 
   function mountRoot() {
@@ -233,12 +241,15 @@
     const inList = index !== -1;
     addBtn.disabled = inList;
     addBtn.textContent = inList ? '✓ W pętli' : '+ Dodaj do pętli';
-    if (isLoopTabFor(id)) {
+    const loop = isLoopTabFor(id);
+    if (loop) {
       badge.textContent = `⟳ Pętla ${index + 1}/${playlist.length}`;
       badge.hidden = false;
     } else {
       badge.hidden = true;
     }
+    // Tylko gdy to wtyczka przełączyła okno w pełny ekran (tylko taki potrafi wyłączyć).
+    exitFsBtn.hidden = !(loop && state.fullscreenWindowId != null);
   }
 
   // W pełnym ekranie okna (chrome.windows) Esc nie działa domyślnie, więc obsługujemy go sami.
