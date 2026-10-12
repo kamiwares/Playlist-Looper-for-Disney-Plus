@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "version": "1.0.0",
-  "homepage_url": "https://github.com/kamiwares/disney",
+  "homepage_url": "https://github.com/kamiwares/Playlist-Looper-for-Disney-Plus",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "permissions": ["storage"],
