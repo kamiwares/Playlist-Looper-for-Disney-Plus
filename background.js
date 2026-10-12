@@ -84,6 +84,7 @@ async function playAt(index, preferredTabId) {
   }
 
   lastAdvanceAt = Date.now();
+  console.info('[Playlist Looper] playing', index + 1, item.title);
   await updateState({ active: true, currentId: item.id, index, tabId });
   await enterFullscreen();
 }
@@ -183,6 +184,7 @@ async function handle(msg, sender) {
       const { state } = await load();
       if (!state.active || sender.tab?.id !== state.tabId || msg.id !== state.currentId) return { ok: false };
       if (Date.now() - lastAdvanceAt < 3000) return { ok: false };
+      console.info('[Playlist Looper] item ended, moving on');
       return step('auto');
     }
 

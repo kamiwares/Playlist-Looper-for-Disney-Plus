@@ -213,6 +213,7 @@
   }
 
   function onIdChange(prev, next) {
+    if (prev || next) log('item changed', { from: prev, to: next, loopTab: isLoopTabFor(next) });
     // Disney+ moved on by itself (autoplay or back to /browse) near the end: treat as ended.
     if (prev && next !== prev && maxRatio > 0.85 && endedSentFor !== prev) sendEnded(prev, 'navigated away');
     maxRatio = 0;
@@ -238,6 +239,7 @@
 
     if (started) return;
     if (watchedSeconds > 0.5) {
+      log('playback detected', { readyState: video?.readyState, duration: video?.duration, currentTime: video?.currentTime });
       started = true;
       sessionStorage.removeItem(retryKey(id));
       return;
@@ -317,7 +319,8 @@
     video = v;
     lastTime = null;
     if (!v) return;
-    log('watching video', { inShadowDom: v.getRootNode() !== document, readyState: v.readyState, duration: v.duration });
+    const count = deepQueryAll(document, 'video').length;
+    log('watching video', { videosOnPage: count, inShadowDom: v.getRootNode() !== document, readyState: v.readyState, duration: v.duration });
     v.addEventListener('timeupdate', check);
     v.addEventListener('ended', () => {
       const id = currentId();
