@@ -57,6 +57,8 @@
   let slider = null;
   let sliderSeen = null; // last aria-valuenow read
   let timeOffset = null; // timeline position minus video.currentTime
+  let timelineTotal = null; // title length from aria-valuemax
+  let sliderScanAt = 0;
   const titleCache = {};
   let timer = null;
   let observer = null;
@@ -169,14 +171,20 @@
     return slider?.hasAttribute(attr) && Number.isFinite(n) ? n : null;
   }
 
+  // The slider is removed from the DOM while the controls are hidden; the deep scan
+  // for it runs at most once a second.
   function getSlider() {
-    if (!slider?.isConnected) slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
+    if (slider?.isConnected) return slider;
+    if (Date.now() - sliderScanAt < 1000) return null;
+    sliderScanAt = Date.now();
+    slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
     return slider;
   }
 
   // The stream's video.duration is NaN/Infinity (MSE) and video.currentTime is offset from
   // the title's timeline. Whenever the slider shows a fresh value, the offset is
-  // recalibrated; in between, the position follows video.currentTime.
+  // recalibrated; in between (also while the slider is gone), the position follows
+  // video.currentTime and the remembered length.
   function timeline(v) {
     if (Number.isFinite(v.duration) && v.duration > 0) return { now: v.currentTime, total: v.duration };
     const s = getSlider();
@@ -186,7 +194,8 @@
       timeOffset = now - v.currentTime;
     }
     const total = sliderValue(s, 'aria-valuemax');
-    return timeOffset != null && total > 0 ? { now: v.currentTime + timeOffset, total } : null;
+    if (total > 0) timelineTotal = total;
+    return timeOffset != null && timelineTotal ? { now: v.currentTime + timeOffset, total: timelineTotal } : null;
   }
 
   // Click the very start of the timeline, like a user would; every other attempt uses
@@ -253,6 +262,7 @@
     lastRestartAt = 0;
     sliderSeen = null;
     timeOffset = null;
+    timelineTotal = null;
   }
 
   function retryKey(id) {
@@ -349,6 +359,7 @@
     lastTime = null;
     sliderSeen = null;
     timeOffset = null;
+    timelineTotal = null;
     if (!v) return;
     const count = deepQueryAll(document, 'video').length;
     log('watching video', { videosOnPage: count, inShadowDom: v.getRootNode() !== document, readyState: v.readyState, duration: v.duration });
