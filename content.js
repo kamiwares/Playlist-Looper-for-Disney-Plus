@@ -22,8 +22,13 @@
   const MAX_RELOADS = 3; // then skip the item
   // "Are you still watching?" (if this breaks, the watchdog reloads anyway).
   const CONTINUE_SELECTOR = '[data-testid*="continue-watching" i], [data-testid*="still-watching" i] button';
-  // Disney+ resumes where you left off; with startOver the loop tab seeks back once.
+  // Disney+ resumes where you left off; with startOver the loop tab seeks back to 0.
+  // The player loads at 0 and jumps to the resume point a moment later (and may override
+  // a seek), so it keeps checking during the first seconds of playback, with a few retries.
   const RESUME_MIN_SECONDS = 10;
+  const RESUME_WINDOW_SECONDS = 15; // of actual playback; later jumps are the user's own seeks
+  const RESTART_RETRY_MS = 1500;
+  const MAX_RESTARTS = 4;
 
   let playlist = [];
   let settings = { ...DEFAULT_SETTINGS };
@@ -41,7 +46,8 @@
   let loadStartedAt = Date.now();
   let started = false;
   let nudged = false;
-  let restarted = false;
+  let restarts = 0;
+  let lastRestartAt = 0;
   const titleCache = {};
   let timer = null;
   let observer = null;
@@ -154,7 +160,8 @@
     loadStartedAt = Date.now();
     started = false;
     nudged = false;
-    restarted = false;
+    restarts = 0;
+    lastRestartAt = 0;
   }
 
   function retryKey(id) {
@@ -203,13 +210,20 @@
     if (!Number.isFinite(v.duration) || v.duration <= 0) return;
 
     // Unlike Netflix, Disney+ tolerates seeking, so a resumed item restarts from 0.
-    if (!restarted && v.readyState > 0 && isLoopTabFor(id)) {
-      restarted = true;
-      if (settings.startOver && v.currentTime > RESUME_MIN_SECONDS) {
-        v.currentTime = 0;
-        lastTime = null;
-        return;
-      }
+    if (
+      settings.startOver &&
+      isLoopTabFor(id) &&
+      restarts < MAX_RESTARTS &&
+      watchedSeconds < RESUME_WINDOW_SECONDS &&
+      v.currentTime > RESUME_MIN_SECONDS &&
+      Date.now() - lastRestartAt > RESTART_RETRY_MS
+    ) {
+      restarts++;
+      lastRestartAt = Date.now();
+      v.currentTime = 0;
+      lastTime = null;
+      maxRatio = 0; // the resume point must not count towards the 85% rule
+      return;
     }
 
     if (lastTime != null && !v.paused) {
