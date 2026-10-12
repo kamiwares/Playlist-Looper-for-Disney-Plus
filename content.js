@@ -23,8 +23,10 @@
   // "Are you still watching?" (if this breaks, the watchdog reloads anyway).
   const CONTINUE_SELECTOR = '[data-testid*="continue-watching" i], [data-testid*="still-watching" i] button';
   // Disney+ resumes where you left off; with startOver the loop tab seeks back to 0.
-  // The player loads at 0 and jumps to the resume point a moment later (and may override
-  // a seek), so it keeps checking during the first seconds of playback, with a few retries.
+  // The player loads at 0 and jumps to the resume point a moment later, so it keeps checking
+  // during the first seconds of playback, with a few retries. Setting video.currentTime
+  // stalls the Disney+ player, so the seek goes through its own timeline slider.
+  const SEEK_SLIDER_SELECTOR = '.progress-bar__seekable-range[role="slider"]';
   const RESUME_MIN_SECONDS = 10;
   const RESUME_WINDOW_SECONDS = 15; // of actual playback; later jumps are the user's own seeks
   const RESTART_RETRY_MS = 1500;
@@ -109,21 +111,61 @@
     return parseDisneyId(location.pathname);
   }
 
-  // The player may render <video> inside open shadow roots; pick the biggest one (skips previews).
-  function findVideos(node, out = []) {
-    out.push(...node.querySelectorAll('video'));
-    for (const el of node.querySelectorAll('*')) if (el.shadowRoot) findVideos(el.shadowRoot, out);
+  // The player renders UI and media inside open shadow roots.
+  function deepQueryAll(node, selector, out = []) {
+    out.push(...node.querySelectorAll(selector));
+    for (const el of node.querySelectorAll('*')) if (el.shadowRoot) deepQueryAll(el.shadowRoot, selector, out);
     return out;
   }
 
+  function deepQuery(node, selector) {
+    const hit = node.querySelector(selector);
+    if (hit) return hit;
+    for (const el of node.querySelectorAll('*')) {
+      const found = el.shadowRoot && deepQuery(el.shadowRoot, selector);
+      if (found) return found;
+    }
+    return null;
+  }
+
   // Only on player pages: elsewhere a <video> is just a preview, and the deep scan isn't free.
+  // The light DOM holds an empty placeholder <video> (readyState 0); prefer one that has media.
   function findVideo() {
     if (!currentId()) return null;
-    const light = document.querySelectorAll('video');
-    const videos = light.length ? [...light] : findVideos(document);
+    const all = deepQueryAll(document, 'video');
+    const loaded = all.filter((v) => v.readyState > 0);
+    const videos = loaded.length ? loaded : all;
     if (videos.length <= 1) return videos[0] || null;
     const area = (v) => v.offsetWidth * v.offsetHeight;
     return videos.reduce((a, b) => (area(b) > area(a) ? b : a));
+  }
+
+  // Position on the Disney+ timeline (aria-valuenow is in seconds), else the video's own.
+  function position(v, slider) {
+    const now = Number(slider?.getAttribute('aria-valuenow'));
+    return Number.isFinite(now) && slider.hasAttribute('aria-valuenow') ? now : v.currentTime;
+  }
+
+  // Click the very start of the timeline, like a user would; every other attempt uses
+  // the Home key instead, in case the player ignores synthetic pointer events.
+  function seekToStart(slider, attempt) {
+    if (attempt % 2 === 0) {
+      const r = slider.getBoundingClientRect();
+      if (!r.width) return false;
+      const at = { bubbles: true, composed: true, cancelable: true, clientX: r.left + 1, clientY: r.top + r.height / 2 };
+      const ptr = { ...at, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0 };
+      slider.dispatchEvent(new PointerEvent('pointerdown', { ...ptr, buttons: 1 }));
+      slider.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0, buttons: 1 }));
+      slider.dispatchEvent(new PointerEvent('pointerup', { ...ptr, buttons: 0 }));
+      slider.dispatchEvent(new MouseEvent('mouseup', { ...at, button: 0, buttons: 0 }));
+      slider.dispatchEvent(new MouseEvent('click', { ...at, button: 0, buttons: 0 }));
+    } else {
+      slider.focus?.();
+      const key = { key: 'Home', code: 'Home', keyCode: 36, bubbles: true, composed: true, cancelable: true };
+      slider.dispatchEvent(new KeyboardEvent('keydown', key));
+      slider.dispatchEvent(new KeyboardEvent('keyup', key));
+    }
+    return true;
   }
 
   function isLoopTabFor(id) {
@@ -209,21 +251,22 @@
     const v = video;
     if (!Number.isFinite(v.duration) || v.duration <= 0) return;
 
-    // Unlike Netflix, Disney+ tolerates seeking, so a resumed item restarts from 0.
+    // A resumed item restarts from 0.
     if (
       settings.startOver &&
       isLoopTabFor(id) &&
       restarts < MAX_RESTARTS &&
       watchedSeconds < RESUME_WINDOW_SECONDS &&
-      v.currentTime > RESUME_MIN_SECONDS &&
       Date.now() - lastRestartAt > RESTART_RETRY_MS
     ) {
-      restarts++;
-      lastRestartAt = Date.now();
-      v.currentTime = 0;
-      lastTime = null;
-      maxRatio = 0; // the resume point must not count towards the 85% rule
-      return;
+      const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
+      if (slider && position(v, slider) > RESUME_MIN_SECONDS && seekToStart(slider, restarts)) {
+        restarts++;
+        lastRestartAt = Date.now();
+        lastTime = null;
+        maxRatio = 0; // the resume point must not count towards the 85% rule
+        return;
+      }
     }
 
     if (lastTime != null && !v.paused) {
@@ -327,7 +370,7 @@
       onIdChange(lastId, id);
       lastId = id;
     }
-    if (!video?.isConnected || !id) {
+    if (!video?.isConnected || video.readyState === 0 || !id) {
       const v = findVideo();
       if (v !== video) attach(v);
     }

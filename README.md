@@ -115,7 +115,7 @@ A title counts as finished when any of these happens:
 - the Disney+ "Up next" overlay appears;
 - Disney+ navigates away by itself after more than 85% of the title was watched.
 
-Disney+ has no URL parameter to start from the beginning, so with **Always from the beginning** on, the loop tab seeks a resumed title back to 0 once, when it starts.
+Disney+ has no URL parameter to start from the beginning, so with **Always from the beginning** on, the loop tab seeks a resumed title back to 0 when it starts. It does so by clicking the start of the player's own timeline: setting `video.currentTime` directly stalls the Disney+ player.
 
 All data (playlist, settings, loop state) lives in `chrome.storage.local`.
 
