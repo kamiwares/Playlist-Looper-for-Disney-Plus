@@ -72,8 +72,20 @@
   }
 
   // Decisions only (not per tick), so a bug report can show why the loop did something.
+  // Also kept in the tab's sessionStorage (survives reloads):
+  // copy(sessionStorage.getItem('dlp-log')) in the console copies it.
+  const LOG_KEY = 'dlp-log';
+  const LOG_LINES = 200;
   function log(...args) {
     console.info('[Playlist Looper]', ...args);
+    try {
+      const text = args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+      const lines = (sessionStorage.getItem(LOG_KEY) || '').split('\n').filter(Boolean).slice(1 - LOG_LINES);
+      lines.push(`${new Date().toISOString().slice(11, 19)} ${text}`);
+      sessionStorage.setItem(LOG_KEY, lines.join('\n'));
+    } catch {
+      // storage full or blocked: console only
+    }
   }
 
   function send(msg) {
@@ -391,6 +403,26 @@
     send({ type: 'START', here: true });
   }
 
+  const STATUS_EVERY_MS = 10000;
+  let lastStatusAt = 0;
+
+  function logStatus(id) {
+    if (Date.now() - lastStatusAt < STATUS_EVERY_MS) return;
+    lastStatusAt = Date.now();
+    const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
+    log('status', {
+      loopTab: isLoopTabFor(id),
+      videos: deepQueryAll(document, 'video').length,
+      readyState: video?.readyState,
+      paused: video?.paused,
+      currentTime: video && Math.round(video.currentTime),
+      duration: video?.duration,
+      slider: slider ? `${sliderValue(slider, 'aria-valuenow')}/${sliderValue(slider, 'aria-valuemax')}` : null,
+      watched: Math.round(watchedSeconds),
+      started,
+    });
+  }
+
   function tick() {
     if (!alive()) {
       teardown();
@@ -409,6 +441,7 @@
     if (id) {
       check();
       watchdog(id);
+      logStatus(id);
       maybeFixTitle(id);
     }
     updateUi();
@@ -561,6 +594,7 @@
     if (v !== video) attach(v);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
+  log('page loaded', location.pathname);
   timer = setInterval(tick, 1000);
   tick();
 })();
