@@ -22,13 +22,14 @@
   const MAX_RELOADS = 3; // then skip the item
   // "Are you still watching?" (if this breaks, the watchdog reloads anyway).
   const CONTINUE_SELECTOR = '[data-testid*="continue-watching" i], [data-testid*="still-watching" i] button';
-  // Disney+ resumes where you left off; with startOver the loop tab seeks back to 0.
-  // Only right after the item loads, with a few retries: any later jump is the user's
-  // own seek (e.g. to the end) and must not restart the item. Setting video.currentTime
-  // stalls the Disney+ player, so the seek goes through its own timeline slider.
+  // Disney+ timeline slider: aria-valuemax is the title's length in seconds, aria-valuenow
+  // the position, but only refreshed while the controls are on screen.
   const SEEK_SLIDER_SELECTOR = '.progress-bar__seekable-range[role="slider"]';
+  // Disney+ resumes where you left off; with startOver the loop tab seeks back to 0.
+  // Decided once, on the first position read after the item loads: any later jump is the
+  // user's own seek (e.g. to the end) and must not restart the item. Setting
+  // video.currentTime stalls the Disney+ player, so the seek goes through the slider.
   const RESUME_MIN_SECONDS = 10;
-  const RESUME_WINDOW_SECONDS = 3; // of actual playback
   const RESUME_WINDOW_MS = 30000; // since the item started loading
   const RESTART_RETRY_MS = 1500;
   const MAX_RESTARTS = 4;
@@ -49,8 +50,13 @@
   let loadStartedAt = Date.now();
   let started = false;
   let nudged = false;
+  let resumeChecked = false;
+  let needsRestart = false;
   let restarts = 0;
   let lastRestartAt = 0;
+  let slider = null;
+  let sliderSeen = null; // last aria-valuenow read
+  let timeOffset = null; // timeline position minus video.currentTime
   const titleCache = {};
   let timer = null;
   let observer = null;
@@ -163,18 +169,24 @@
     return slider?.hasAttribute(attr) && Number.isFinite(n) ? n : null;
   }
 
-  // Position on the Disney+ timeline (aria-valuenow is in seconds), else the video's own.
-  function position(v, slider) {
-    return sliderValue(slider, 'aria-valuenow') ?? v.currentTime;
+  function getSlider() {
+    if (!slider?.isConnected) slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
+    return slider;
   }
 
-  // The stream's video.duration can be Infinity (MSE); then fall back to the timeline slider.
+  // The stream's video.duration is NaN/Infinity (MSE) and video.currentTime is offset from
+  // the title's timeline. Whenever the slider shows a fresh value, the offset is
+  // recalibrated; in between, the position follows video.currentTime.
   function timeline(v) {
     if (Number.isFinite(v.duration) && v.duration > 0) return { now: v.currentTime, total: v.duration };
-    const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
-    const now = sliderValue(slider, 'aria-valuenow');
-    const total = sliderValue(slider, 'aria-valuemax');
-    return now != null && total > 0 ? { now, total } : null;
+    const s = getSlider();
+    const now = sliderValue(s, 'aria-valuenow');
+    if (now != null && now !== sliderSeen) {
+      sliderSeen = now;
+      timeOffset = now - v.currentTime;
+    }
+    const total = sliderValue(s, 'aria-valuemax');
+    return timeOffset != null && total > 0 ? { now: v.currentTime + timeOffset, total } : null;
   }
 
   // Click the very start of the timeline, like a user would; every other attempt uses
@@ -235,8 +247,12 @@
     loadStartedAt = Date.now();
     started = false;
     nudged = false;
+    resumeChecked = false;
+    needsRestart = false;
     restarts = 0;
     lastRestartAt = 0;
+    sliderSeen = null;
+    timeOffset = null;
   }
 
   function retryKey(id) {
@@ -294,19 +310,22 @@
     }
     lastTime = v.currentTime;
 
+    const tl = timeline(v);
+    if (!tl) return;
+
     // A resumed item restarts from 0.
-    if (
-      settings.startOver &&
-      isLoopTabFor(id) &&
-      restarts < MAX_RESTARTS &&
-      watchedSeconds < RESUME_WINDOW_SECONDS &&
-      Date.now() - loadStartedAt < RESUME_WINDOW_MS &&
-      Date.now() - lastRestartAt > RESTART_RETRY_MS
-    ) {
-      const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
-      const at = slider && position(v, slider);
-      if (at > RESUME_MIN_SECONDS && seekToStart(slider, restarts)) {
-        log(`resumed at ${Math.round(at)} s, seeking to the start (attempt ${restarts + 1}/${MAX_RESTARTS})`);
+    if (!resumeChecked && settings.startOver && isLoopTabFor(id) && Date.now() - loadStartedAt < RESUME_WINDOW_MS) {
+      resumeChecked = true;
+      needsRestart = tl.now > RESUME_MIN_SECONDS;
+      log('start position', { at: Math.round(tl.now), restart: needsRestart });
+    }
+    if (needsRestart && tl.now <= RESUME_MIN_SECONDS) {
+      needsRestart = false;
+      log('restarted from the beginning');
+    }
+    if (needsRestart && restarts < MAX_RESTARTS && Date.now() - lastRestartAt > RESTART_RETRY_MS) {
+      if (getSlider() && seekToStart(slider, restarts)) {
+        log(`seeking to the start (attempt ${restarts + 1}/${MAX_RESTARTS})`);
         restarts++;
         lastRestartAt = Date.now();
         maxRatio = 0; // the resume point must not count towards the 85% rule
@@ -314,8 +333,6 @@
       }
     }
 
-    const tl = timeline(v);
-    if (!tl) return;
     maxRatio = Math.max(maxRatio, tl.now / tl.total);
 
     const remaining = tl.total - tl.now;
@@ -330,6 +347,8 @@
   function attach(v) {
     video = v;
     lastTime = null;
+    sliderSeen = null;
+    timeOffset = null;
     if (!v) return;
     const count = deepQueryAll(document, 'video').length;
     log('watching video', { videosOnPage: count, inShadowDom: v.getRootNode() !== document, readyState: v.readyState, duration: v.duration });
@@ -409,7 +428,8 @@
   function logStatus(id) {
     if (Date.now() - lastStatusAt < STATUS_EVERY_MS) return;
     lastStatusAt = Date.now();
-    const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
+    const s = getSlider();
+    const tl = video && timeline(video);
     log('status', {
       loopTab: isLoopTabFor(id),
       videos: deepQueryAll(document, 'video').length,
@@ -417,7 +437,8 @@
       paused: video?.paused,
       currentTime: video && Math.round(video.currentTime),
       duration: video?.duration,
-      slider: slider ? `${sliderValue(slider, 'aria-valuenow')}/${sliderValue(slider, 'aria-valuemax')}` : null,
+      slider: s ? `${sliderValue(s, 'aria-valuenow')}/${sliderValue(s, 'aria-valuemax')}` : null,
+      position: tl ? `${Math.round(tl.now)}/${Math.round(tl.total)}` : null,
       watched: Math.round(watchedSeconds),
       started,
     });
