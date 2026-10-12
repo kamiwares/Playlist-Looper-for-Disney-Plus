@@ -1,6 +1,6 @@
 {
-  "extName": { "message": "Playlist Looper for Netflix" },
-  "extDescription": { "message": "Własna playlista filmów i odcinków z Netflixa odtwarzana w pętli." },
+  "extName": { "message": "Playlist Looper for Disney+" },
+  "extDescription": { "message": "Własna playlista filmów i odcinków z Disney+ odtwarzana w pętli." },
 
   "prev": { "message": "Poprzedni" },
   "next": { "message": "Następny" },
@@ -9,9 +9,9 @@
 
   "addCurrent": { "message": "Dodaj bieżący film" },
   "addCurrentDone": { "message": "Bieżący film jest na liście" },
-  "addInputPlaceholder": { "message": "Link Netflix lub ID, np. 80100172" },
+  "addInputPlaceholder": { "message": "Link Disney+ lub ID" },
   "add": { "message": "Dodaj" },
-  "emptyList": { "message": "Playlista jest pusta. Otwórz film na Netflixie i kliknij „Dodaj bieżący film”." },
+  "emptyList": { "message": "Playlista jest pusta. Otwórz film na Disney+ i kliknij „Dodaj bieżący film”." },
 
   "settings": { "message": "Ustawienia" },
   "mode": { "message": "Tryb" },
@@ -20,7 +20,8 @@
   "modeOff": { "message": "Odtwórz raz i zatrzymaj" },
   "shuffle": { "message": "Kolejność losowa" },
   "fullscreenOption": { "message": "Pełny ekran podczas pętli" },
-  "autoProfileLabel": { "message": "Profil Netflix przy autostarcie" },
+  "startOverOption": { "message": "Zawsze odtwarzaj od początku" },
+  "autoProfileLabel": { "message": "Profil Disney+ przy autostarcie" },
   "autoProfilePlaceholder": { "message": "Nazwa profilu, np. Kamil" },
   "skipBefore": { "message": "Przejdź dalej" },
   "skipAfter": { "message": "s przed końcem" },
@@ -46,7 +47,7 @@
   "placeholderHint": { "message": "tytuł pojawi się po włączeniu" },
 
   "statusAdded": { "message": "Dodano do playlisty." },
-  "statusBadLink": { "message": "Nie rozpoznano linku. Wklej adres netflix.com/watch/… albo samo ID." },
+  "statusBadLink": { "message": "Nie rozpoznano linku. Wklej adres disneyplus.com/play/… albo samo ID." },
   "statusCopied": { "message": "Skopiowano playlistę do schowka." },
   "statusInTextarea": { "message": "Playlista jest w polu tekstowym." },
   "statusBadJson": { "message": "Niepoprawny JSON: oczekiwano listy pozycji." },

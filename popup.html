@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title data-i18n="extName">Playlist Looper for Netflix</title>
+  <title data-i18n="extName">Playlist Looper for Disney+</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -39,7 +39,8 @@
     </label>
     <label class="row"><input type="checkbox" id="shuffle"> <span data-i18n="shuffle">Shuffle</span></label>
     <label class="row"><input type="checkbox" id="fullscreen"> <span data-i18n="fullscreenOption">Fullscreen during the loop</span></label>
-    <label><span data-i18n="autoProfileLabel">Netflix profile for autostart</span>
+    <label class="row"><input type="checkbox" id="startOver"> <span data-i18n="startOverOption">Always play from the beginning</span></label>
+    <label><span data-i18n="autoProfileLabel">Disney+ profile for autostart</span>
       <input type="text" id="autoProfile" data-i18n-placeholder="autoProfilePlaceholder" autocomplete="off">
     </label>
     <label><span data-i18n="skipBefore">Move on</span> <input type="number" id="creditsOffset" min="0" max="900" step="1"> <span data-i18n="skipAfter">s before the end</span>
@@ -59,7 +60,7 @@
   <footer class="credits">
     <span id="version"></span> · <span data-i18n="madeBy">brought to life by</span>
     <a href="https://waresiak.it" target="_blank" rel="noopener">waresiak.it</a> ·
-    <a href="https://github.com/kamiwares/netflix" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/kamiwares/Playlist-Looper-for-Disney-Plus" target="_blank" rel="noopener">GitHub</a>
   </footer>
 
   <template id="item-tpl">
