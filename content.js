@@ -1,27 +1,29 @@
-// Runs on all of netflix.com (an SPA), tracking URL changes and <video> swaps itself.
+// Runs on all of disneyplus.com (an SPA), tracking URL changes and <video> swaps itself.
 // Content scripts can't use static imports, so shared modules load via import() (web-accessible).
 (async () => {
   const load = (file) => import(chrome.runtime.getURL(file));
-  const [{ t }, { setIcon }, { PLACEHOLDER_PREFIX, DEFAULT_SETTINGS, DEFAULT_STATE }] = await Promise.all([
+  const [{ t }, { setIcon }, { PLACEHOLDER_PREFIX, DEFAULT_SETTINGS, DEFAULT_STATE, parseDisneyId }] = await Promise.all([
     load('shared/i18n.js'),
     load('shared/icons.js'),
     load('shared/storage.js'),
   ]);
 
-  // Netflix post-play screen. Selectors may change, so it's only an extra end signal.
+  // Disney+ "Up next" overlay. Selectors may change, so it's only an extra end signal.
   const POSTPLAY_SELECTOR = [
-    '[data-uia="next-episode-seamless-button"]',
-    '[data-uia="next-episode-seamless-button-draining"]',
-    '[data-uia="watch-credits-seamless-button"]',
-    '[data-uia^="postplay"]',
+    '[data-testid*="up-next" i]',
+    '[data-testid*="upnext" i]',
+    '[class*="up-next" i]',
+    '[class*="upnext" i]',
   ].join(',');
   const MIN_WATCHED_SECONDS = 5;
-  // Loading watchdog: Netflix sometimes hangs on a black screen or a spinner.
+  // Loading watchdog: Disney+ sometimes hangs on a black screen or a spinner.
   const PLAY_NUDGE_MS = 12000; // then try play()
   const RELOAD_MS = 25000; // then reload
   const MAX_RELOADS = 3; // then skip the item
   // "Are you still watching?" (if this breaks, the watchdog reloads anyway).
-  const CONTINUE_SELECTOR = '[data-uia="interrupt-autoplay-continue"]';
+  const CONTINUE_SELECTOR = '[data-testid*="continue-watching" i], [data-testid*="still-watching" i] button';
+  // Disney+ resumes where you left off; with startOver the loop tab seeks back once.
+  const RESUME_MIN_SECONDS = 10;
 
   let playlist = [];
   let settings = { ...DEFAULT_SETTINGS };
@@ -39,6 +41,7 @@
   let loadStartedAt = Date.now();
   let started = false;
   let nudged = false;
+  let restarted = false;
   const titleCache = {};
   let timer = null;
   let observer = null;
@@ -97,8 +100,24 @@
   });
 
   function currentId() {
-    const m = location.pathname.match(/^\/watch\/(\d+)/);
-    return m ? m[1] : null;
+    return parseDisneyId(location.pathname);
+  }
+
+  // The player may render <video> inside open shadow roots; pick the biggest one (skips previews).
+  function findVideos(node, out = []) {
+    out.push(...node.querySelectorAll('video'));
+    for (const el of node.querySelectorAll('*')) if (el.shadowRoot) findVideos(el.shadowRoot, out);
+    return out;
+  }
+
+  // Only on player pages: elsewhere a <video> is just a preview, and the deep scan isn't free.
+  function findVideo() {
+    if (!currentId()) return null;
+    const light = document.querySelectorAll('video');
+    const videos = light.length ? [...light] : findVideos(document);
+    if (videos.length <= 1) return videos[0] || null;
+    const area = (v) => v.offsetWidth * v.offsetHeight;
+    return videos.reduce((a, b) => (area(b) > area(a) ? b : a));
   }
 
   function isLoopTabFor(id) {
@@ -106,14 +125,16 @@
   }
 
   function readTitle() {
-    const el = document.querySelector('[data-uia="video-title"]');
-    if (el) {
-      const parts = [...el.children].map((c) => c.textContent.trim()).filter(Boolean);
-      const t = parts.length ? parts.join(' · ') : el.textContent.trim();
-      if (t) return t;
+    const title = document.querySelector('.title-field, [data-testid="title-field"]')?.textContent.trim();
+    if (title) {
+      const sub = document.querySelector('.subtitle-field, [data-testid="subtitle-field"]')?.textContent.trim();
+      return sub ? `${title} · ${sub}` : title;
     }
-    const dt = document.title.replace(/\s*[-|–]\s*Netflix\s*$/i, '').trim();
-    if (dt && dt.toLowerCase() !== 'netflix') return dt;
+    const dt = document.title
+      .replace(/\s*[-|–]\s*Disney\+?\s*$/i, '')
+      .replace(/^(watch|oglądaj)\s+/i, '')
+      .trim();
+    if (dt && !/^disney\+?$/i.test(dt)) return dt;
     return null;
   }
 
@@ -124,7 +145,7 @@
   }
 
   function onIdChange(prev, next) {
-    // Netflix moved on by itself (autoplay or back to /browse) near the end: treat as ended.
+    // Disney+ moved on by itself (autoplay or back to /browse) near the end: treat as ended.
     if (prev && next !== prev && maxRatio > 0.85 && endedSentFor !== prev) sendEnded(prev);
     maxRatio = 0;
     watchedSeconds = 0;
@@ -133,10 +154,11 @@
     loadStartedAt = Date.now();
     started = false;
     nudged = false;
+    restarted = false;
   }
 
   function retryKey(id) {
-    return `nlp-reloads-${id}`;
+    return `dlp-reloads-${id}`;
   }
 
   // On the loop tab: nudge play(), then reload, then skip after MAX_RELOADS.
@@ -179,6 +201,16 @@
     if (!id || !video) return;
     const v = video;
     if (!Number.isFinite(v.duration) || v.duration <= 0) return;
+
+    // Unlike Netflix, Disney+ tolerates seeking, so a resumed item restarts from 0.
+    if (!restarted && v.readyState > 0 && isLoopTabFor(id)) {
+      restarted = true;
+      if (settings.startOver && v.currentTime > RESUME_MIN_SECONDS) {
+        v.currentTime = 0;
+        lastTime = null;
+        return;
+      }
+    }
 
     if (lastTime != null && !v.paused) {
       const delta = v.currentTime - lastTime;
@@ -228,10 +260,10 @@
 
   // ---------- Autostart (#autostart) ----------
   // Marker set by autostart.js; 'clicked' means the profile was already picked
-  // (Netflix may have reloaded). Cleared only when the loop starts.
-  const AUTOSTART_KEY = 'nlp-autostart';
-  const PROFILE_WAIT_MS = 6000; // wait for "Who's watching?"
-  const AFTER_PROFILE_MS = 2500; // let Netflix switch profiles
+  // (Disney+ may have reloaded). Cleared only when the loop starts.
+  const AUTOSTART_KEY = 'dlp-autostart';
+  const PROFILE_WAIT_MS = 8000; // wait for "Who's watching?"
+  const AFTER_PROFILE_MS = 3000; // let Disney+ switch profiles
   const autostartAt = Date.now();
   let profileClickedAt = 0;
 
@@ -240,11 +272,11 @@
     return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
   }
 
-  // Match visible elements by name rather than Netflix CSS classes (they change often);
+  // Match visible elements by name rather than Disney+ CSS classes (they change often);
   // isVisible() skips the hidden account menu.
   function findProfile(name) {
     const target = name.toLocaleLowerCase();
-    for (const el of document.querySelectorAll('a, button, [role="link"], [role="button"], span, p')) {
+    for (const el of document.querySelectorAll('a, button, [role="link"], [role="button"], span, p, h3, div')) {
       if (el.children.length > 2 || el.textContent.trim().toLocaleLowerCase() !== target || !isVisible(el)) continue;
       return el.closest('a, button, [role="link"], [role="button"], [tabindex]') || el;
     }
@@ -281,8 +313,10 @@
       onIdChange(lastId, id);
       lastId = id;
     }
-    const v = document.querySelector('video');
-    if (v !== video) attach(v);
+    if (!video?.isConnected || !id) {
+      const v = findVideo();
+      if (v !== video) attach(v);
+    }
     if (id) {
       check();
       watchdog(id);
@@ -293,25 +327,25 @@
 
   // ---------- On-page controls ----------
   const root = document.createElement('div');
-  root.id = 'nlp-root';
-  const ICON = '<span class="nlp-icon" aria-hidden="true"></span><span class="nlp-label"></span>';
+  root.id = 'dlp-root';
+  const ICON = '<span class="dlp-icon" aria-hidden="true"></span><span class="dlp-label"></span>';
   root.innerHTML =
-    `<span class="nlp-badge">${ICON}</span>` +
-    `<button type="button" class="nlp-fs">${ICON}</button>` +
-    `<button type="button" class="nlp-add">${ICON}</button>`;
-  const badge = root.querySelector('.nlp-badge');
-  const fsBtn = root.querySelector('.nlp-fs');
-  const addBtn = root.querySelector('.nlp-add');
+    `<span class="dlp-badge">${ICON}</span>` +
+    `<button type="button" class="dlp-fs">${ICON}</button>` +
+    `<button type="button" class="dlp-add">${ICON}</button>`;
+  const badge = root.querySelector('.dlp-badge');
+  const fsBtn = root.querySelector('.dlp-fs');
+  const addBtn = root.querySelector('.dlp-add');
   let hideTimer = null;
 
   // Sets icon and label; the icon is swapped only when it changes.
   function setContent(el, iconName, text) {
-    const icon = el.querySelector('.nlp-icon');
+    const icon = el.querySelector('.dlp-icon');
     if (icon.dataset.icon !== iconName) {
       icon.dataset.icon = iconName;
       setIcon(icon, iconName);
     }
-    el.querySelector('.nlp-label').textContent = text;
+    el.querySelector('.dlp-label').textContent = text;
   }
 
   addBtn.addEventListener('click', async () => {
@@ -320,7 +354,7 @@
     await send({ type: 'ADD', id, title: readTitle() || titleCache[id] });
   });
 
-  // Page fullscreen (Netflix button) or window fullscreen (F11 / extension).
+  // Page fullscreen (Disney+ button) or window fullscreen (F11 / extension).
   function isFullscreen() {
     return !!document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches;
   }
@@ -354,7 +388,7 @@
   const NOTICE_MAX_AGE_MS = 15000; // ignore stale notices
   const TOAST_MS = 6000;
   const toast = document.createElement('div');
-  toast.id = 'nlp-toast';
+  toast.id = 'dlp-toast';
   toast.setAttribute('role', 'status');
   toast.innerHTML = ICON;
   let toastTimer = null;
@@ -363,10 +397,10 @@
     setContent(toast, iconName, text);
     mountInPlayer(toast);
     void toast.offsetWidth; // restart the transition
-    toast.classList.add('nlp-toast-visible');
+    toast.classList.add('dlp-toast-visible');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
-      toast.classList.remove('nlp-toast-visible');
+      toast.classList.remove('dlp-toast-visible');
       setTimeout(() => toast.remove(), 300);
     }, TOAST_MS);
   }
@@ -375,16 +409,16 @@
   function maybeShowNotice() {
     if (!notice || myTabId == null || notice.tabId !== myTabId) return;
     if (Date.now() - notice.at > NOTICE_MAX_AGE_MS) return;
-    const key = 'nlp-notice-shown';
+    const key = 'dlp-notice-shown';
     if (sessionStorage.getItem(key) === String(notice.at)) return;
     sessionStorage.setItem(key, String(notice.at));
     showToast(notice.text, notice.icon || 'triangle-exclamation');
   }
 
   function showUi() {
-    root.classList.add('nlp-visible');
+    root.classList.add('dlp-visible');
     clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => root.classList.remove('nlp-visible'), 3000);
+    hideTimer = setTimeout(() => root.classList.remove('dlp-visible'), 3000);
   }
 
   function updateUi() {
@@ -433,7 +467,8 @@
   });
 
   observer = new MutationObserver(() => {
-    const v = document.querySelector('video');
+    if (video?.isConnected) return;
+    const v = findVideo();
     if (v !== video) attach(v);
   }).observe(document.documentElement, { childList: true, subtree: true });
 

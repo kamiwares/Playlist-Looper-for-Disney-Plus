@@ -1,6 +1,6 @@
 {
-  "extName": { "message": "Playlist Looper for Netflix" },
-  "extDescription": { "message": "Your own playlist of Netflix movies and episodes, played on repeat." },
+  "extName": { "message": "Playlist Looper for Disney+" },
+  "extDescription": { "message": "Your own playlist of Disney+ movies and episodes, played on repeat." },
 
   "prev": { "message": "Previous" },
   "next": { "message": "Next" },
@@ -9,9 +9,9 @@
 
   "addCurrent": { "message": "Add current title" },
   "addCurrentDone": { "message": "Current title is in the playlist" },
-  "addInputPlaceholder": { "message": "Netflix link or ID, e.g. 80100172" },
+  "addInputPlaceholder": { "message": "Disney+ link or ID" },
   "add": { "message": "Add" },
-  "emptyList": { "message": "The playlist is empty. Open a title on Netflix and click “Add current title”." },
+  "emptyList": { "message": "The playlist is empty. Open a title on Disney+ and click “Add current title”." },
 
   "settings": { "message": "Settings" },
   "mode": { "message": "Mode" },
@@ -20,7 +20,8 @@
   "modeOff": { "message": "Play once and stop" },
   "shuffle": { "message": "Shuffle" },
   "fullscreenOption": { "message": "Fullscreen during the loop" },
-  "autoProfileLabel": { "message": "Netflix profile for autostart" },
+  "startOverOption": { "message": "Always play from the beginning" },
+  "autoProfileLabel": { "message": "Disney+ profile for autostart" },
   "autoProfilePlaceholder": { "message": "Profile name, e.g. Kamil" },
   "skipBefore": { "message": "Move on" },
   "skipAfter": { "message": "s before the end" },
@@ -46,7 +47,7 @@
   "placeholderHint": { "message": "title appears after playing" },
 
   "statusAdded": { "message": "Added to the playlist." },
-  "statusBadLink": { "message": "Link not recognized. Paste a netflix.com/watch/… address or just the ID." },
+  "statusBadLink": { "message": "Link not recognized. Paste a disneyplus.com/play/… address or just the ID." },
   "statusCopied": { "message": "Playlist copied to the clipboard." },
   "statusInTextarea": { "message": "The playlist is in the text field." },
   "statusBadJson": { "message": "Invalid JSON: expected a list of items." },

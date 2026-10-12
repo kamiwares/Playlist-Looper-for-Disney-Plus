@@ -2,11 +2,11 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "version": "1.0.0",
-  "homepage_url": "https://github.com/kamiwares/netflix",
+  "homepage_url": "https://github.com/kamiwares/disney",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "permissions": ["storage"],
-  "host_permissions": ["*://www.netflix.com/*"],
+  "host_permissions": ["*://*.disneyplus.com/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -27,13 +27,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://www.netflix.com/*"],
+      "matches": ["*://*.disneyplus.com/*"],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     },
     {
-      "matches": ["*://www.netflix.com/*"],
+      "matches": ["*://*.disneyplus.com/*"],
       "js": ["autostart.js"],
       "run_at": "document_start"
     }
@@ -44,7 +44,7 @@
         "icons/fa/*.svg",
         "shared/*.js"
       ],
-      "matches": ["*://www.netflix.com/*"]
+      "matches": ["*://*.disneyplus.com/*"]
     }
   ]
 }
