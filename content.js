@@ -23,12 +23,13 @@
   // "Are you still watching?" (if this breaks, the watchdog reloads anyway).
   const CONTINUE_SELECTOR = '[data-testid*="continue-watching" i], [data-testid*="still-watching" i] button';
   // Disney+ resumes where you left off; with startOver the loop tab seeks back to 0.
-  // The player loads at 0 and jumps to the resume point a moment later, so it keeps checking
-  // during the first seconds of playback, with a few retries. Setting video.currentTime
+  // Only right after the item loads, with a few retries: any later jump is the user's
+  // own seek (e.g. to the end) and must not restart the item. Setting video.currentTime
   // stalls the Disney+ player, so the seek goes through its own timeline slider.
   const SEEK_SLIDER_SELECTOR = '.progress-bar__seekable-range[role="slider"]';
   const RESUME_MIN_SECONDS = 10;
-  const RESUME_WINDOW_SECONDS = 15; // of actual playback; later jumps are the user's own seeks
+  const RESUME_WINDOW_SECONDS = 3; // of actual playback
+  const RESUME_WINDOW_MS = 30000; // since the item started loading
   const RESTART_RETRY_MS = 1500;
   const MAX_RESTARTS = 4;
 
@@ -257,6 +258,7 @@
       isLoopTabFor(id) &&
       restarts < MAX_RESTARTS &&
       watchedSeconds < RESUME_WINDOW_SECONDS &&
+      Date.now() - loadStartedAt < RESUME_WINDOW_MS &&
       Date.now() - lastRestartAt > RESTART_RETRY_MS
     ) {
       const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
