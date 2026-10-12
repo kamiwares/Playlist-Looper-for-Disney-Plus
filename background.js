@@ -219,7 +219,7 @@ async function refreshBadge() {
   const i = playlist.findIndex((p) => p.id === state.currentId);
   const text = state.active && i !== -1 ? `${i + 1}/${playlist.length}` : '';
   await chrome.action.setBadgeText({ text });
-  await chrome.action.setBadgeBackgroundColor({ color: '#e50914' });
+  await chrome.action.setBadgeBackgroundColor({ color: '#0063e5' });
 }
 
 chrome.storage.onChanged.addListener(async (changes, area) => {

@@ -1,4 +1,4 @@
-#nlp-root {
+#dlp-root {
   position: fixed;
   top: 16px;
   right: 16px;
@@ -12,14 +12,14 @@
   transition: opacity 0.25s ease;
 }
 
-#nlp-root.nlp-visible {
+#dlp-root.dlp-visible {
   opacity: 1;
   pointer-events: auto;
 }
 
-#nlp-root .nlp-badge,
-#nlp-root .nlp-fs,
-#nlp-root .nlp-add {
+#dlp-root .dlp-badge,
+#dlp-root .dlp-fs,
+#dlp-root .dlp-add {
   padding: 8px 12px;
   border-radius: 6px;
   color: #fff;
@@ -27,30 +27,30 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-#nlp-root .nlp-badge[hidden],
-#nlp-root .nlp-fs[hidden] {
+#dlp-root .dlp-badge[hidden],
+#dlp-root .dlp-fs[hidden] {
   display: none;
 }
 
-#nlp-root .nlp-fs,
-#nlp-root .nlp-add {
+#dlp-root .dlp-fs,
+#dlp-root .dlp-add {
   cursor: pointer;
   font: inherit;
 }
 
-#nlp-root .nlp-fs:hover,
-#nlp-root .nlp-add:not(:disabled):hover {
-  background: #e50914;
-  border-color: #e50914;
+#dlp-root .dlp-fs:hover,
+#dlp-root .dlp-add:not(:disabled):hover {
+  background: #0063e5;
+  border-color: #0063e5;
 }
 
-#nlp-root .nlp-add:disabled {
+#dlp-root .dlp-add:disabled {
   cursor: default;
   opacity: 0.8;
 }
 
 /* On-page notice */
-#nlp-toast {
+#dlp-toast {
   position: fixed;
   left: 50%;
   bottom: 12%;
@@ -69,27 +69,27 @@
   pointer-events: none;
 }
 
-#nlp-toast.nlp-toast-visible {
+#dlp-toast.dlp-toast-visible {
   opacity: 1;
   transform: translate(-50%, 0);
 }
 
 /* Font Awesome icons as currentColor masks */
-#nlp-root .nlp-badge,
-#nlp-root .nlp-fs,
-#nlp-root .nlp-add,
-#nlp-toast {
+#dlp-root .dlp-badge,
+#dlp-root .dlp-fs,
+#dlp-root .dlp-add,
+#dlp-toast {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-#nlp-root .nlp-badge[hidden] {
+#dlp-root .dlp-badge[hidden] {
   display: none;
 }
 
-#nlp-root .nlp-icon,
-#nlp-toast .nlp-icon {
+#dlp-root .dlp-icon,
+#dlp-toast .dlp-icon {
   display: inline-block;
   width: 1em;
   height: 1em;
@@ -99,5 +99,5 @@
   mask: var(--icon) center / contain no-repeat;
 }
 
-#nlp-root .nlp-badge .nlp-icon { color: #ff6b6b; }
-#nlp-toast .nlp-icon { width: 1.15em; height: 1.15em; color: #ffb020; }
+#dlp-root .dlp-badge .dlp-icon { color: #4da3ff; }
+#dlp-toast .dlp-icon { width: 1.15em; height: 1.15em; color: #ffb020; }
