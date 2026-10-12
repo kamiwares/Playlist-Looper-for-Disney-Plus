@@ -71,6 +71,11 @@
     toast.remove();
   }
 
+  // Decisions only (not per tick), so a bug report can show why the loop did something.
+  function log(...args) {
+    console.info('[Playlist Looper]', ...args);
+  }
+
   function send(msg) {
     if (!alive()) {
       teardown();
@@ -141,10 +146,23 @@
     return videos.reduce((a, b) => (area(b) > area(a) ? b : a));
   }
 
+  function sliderValue(slider, attr) {
+    const n = Number(slider?.getAttribute(attr));
+    return slider?.hasAttribute(attr) && Number.isFinite(n) ? n : null;
+  }
+
   // Position on the Disney+ timeline (aria-valuenow is in seconds), else the video's own.
   function position(v, slider) {
-    const now = Number(slider?.getAttribute('aria-valuenow'));
-    return Number.isFinite(now) && slider.hasAttribute('aria-valuenow') ? now : v.currentTime;
+    return sliderValue(slider, 'aria-valuenow') ?? v.currentTime;
+  }
+
+  // The stream's video.duration can be Infinity (MSE); then fall back to the timeline slider.
+  function timeline(v) {
+    if (Number.isFinite(v.duration) && v.duration > 0) return { now: v.currentTime, total: v.duration };
+    const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
+    const now = sliderValue(slider, 'aria-valuenow');
+    const total = sliderValue(slider, 'aria-valuemax');
+    return now != null && total > 0 ? { now, total } : null;
   }
 
   // Click the very start of the timeline, like a user would; every other attempt uses
@@ -187,15 +205,16 @@
     return null;
   }
 
-  function sendEnded(id) {
+  function sendEnded(id, reason) {
     if (endedSentFor === id || !isLoopTabFor(id)) return;
     endedSentFor = id;
+    log('ended:', reason, { watchedSeconds: Math.round(watchedSeconds), maxRatio: maxRatio.toFixed(2) });
     send({ type: 'VIDEO_ENDED', id });
   }
 
   function onIdChange(prev, next) {
     // Disney+ moved on by itself (autoplay or back to /browse) near the end: treat as ended.
-    if (prev && next !== prev && maxRatio > 0.85 && endedSentFor !== prev) sendEnded(prev);
+    if (prev && next !== prev && maxRatio > 0.85 && endedSentFor !== prev) sendEnded(prev, 'navigated away');
     maxRatio = 0;
     watchedSeconds = 0;
     lastTime = null;
@@ -236,10 +255,13 @@
     if (waited < RELOAD_MS) return;
 
     const tries = Number(sessionStorage.getItem(retryKey(id)) || 0);
+    const why = { video: !!video, readyState: video?.readyState, paused: video?.paused, watchedSeconds };
     if (tries < MAX_RELOADS) {
+      log(`not playing after ${Math.round(waited / 1000)} s, reload ${tries + 1}/${MAX_RELOADS}`, why);
       sessionStorage.setItem(retryKey(id), String(tries + 1));
       location.reload();
     } else {
+      log('still not playing, skipping the item', why);
       started = true;
       sessionStorage.removeItem(retryKey(id));
       send({ type: 'LOAD_FAILED', id });
@@ -250,7 +272,13 @@
     const id = currentId();
     if (!id || !video) return;
     const v = video;
-    if (!Number.isFinite(v.duration) || v.duration <= 0) return;
+
+    // Counted from the video itself, so it works even without a known duration.
+    if (lastTime != null && !v.paused) {
+      const delta = v.currentTime - lastTime;
+      if (delta > 0 && delta < 2) watchedSeconds += delta; // ignore seeks
+    }
+    lastTime = v.currentTime;
 
     // A resumed item restarts from 0.
     if (
@@ -262,28 +290,26 @@
       Date.now() - lastRestartAt > RESTART_RETRY_MS
     ) {
       const slider = deepQuery(document, SEEK_SLIDER_SELECTOR);
-      if (slider && position(v, slider) > RESUME_MIN_SECONDS && seekToStart(slider, restarts)) {
+      const at = slider && position(v, slider);
+      if (at > RESUME_MIN_SECONDS && seekToStart(slider, restarts)) {
+        log(`resumed at ${Math.round(at)} s, seeking to the start (attempt ${restarts + 1}/${MAX_RESTARTS})`);
         restarts++;
         lastRestartAt = Date.now();
-        lastTime = null;
         maxRatio = 0; // the resume point must not count towards the 85% rule
         return;
       }
     }
 
-    if (lastTime != null && !v.paused) {
-      const delta = v.currentTime - lastTime;
-      if (delta > 0 && delta < 2) watchedSeconds += delta; // ignore seeks
-    }
-    lastTime = v.currentTime;
-    maxRatio = Math.max(maxRatio, v.currentTime / v.duration);
+    const tl = timeline(v);
+    if (!tl) return;
+    maxRatio = Math.max(maxRatio, tl.now / tl.total);
 
-    const remaining = v.duration - v.currentTime;
+    const remaining = tl.total - tl.now;
     const threshold = Math.max(Number(settings.creditsOffset) || 0, 0.75);
     const enoughWatched = watchedSeconds >= MIN_WATCHED_SECONDS;
 
-    if (enoughWatched && remaining <= threshold) sendEnded(id);
-    else if (enoughWatched && maxRatio > 0.8 && document.querySelector(POSTPLAY_SELECTOR)) sendEnded(id);
+    if (enoughWatched && remaining <= threshold) sendEnded(id, `${remaining.toFixed(1)} s left`);
+    else if (enoughWatched && maxRatio > 0.8 && document.querySelector(POSTPLAY_SELECTOR)) sendEnded(id, 'up next overlay');
     else if (remaining > threshold + 5 && endedSentFor === id) endedSentFor = null; // seeked back
   }
 
@@ -291,10 +317,11 @@
     video = v;
     lastTime = null;
     if (!v) return;
+    log('watching video', { inShadowDom: v.getRootNode() !== document, readyState: v.readyState, duration: v.duration });
     v.addEventListener('timeupdate', check);
     v.addEventListener('ended', () => {
       const id = currentId();
-      if (watchedSeconds >= MIN_WATCHED_SECONDS) sendEnded(id);
+      if (watchedSeconds >= MIN_WATCHED_SECONDS) sendEnded(id, 'ended event');
     });
   }
 
