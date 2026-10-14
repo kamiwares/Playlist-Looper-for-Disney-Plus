@@ -103,7 +103,7 @@ If your Disney+ account has several profiles, Disney+ may ask *Who's watching?* 
 
 | File | Role |
 | --- | --- |
-| `content.js` | Runs on disneyplus.com. Watches the `<video>` element (also inside shadow DOM) and reports when a title ends. Also shows the on-page button and badge and runs the loading watchdog. |
+| `content.js` | Runs on disneyplus.com. Watches the player's `<video>` element and timeline and reports when a title ends. Also shows the on-page button and badge and runs the loading watchdog. |
 | `background.js` | Service worker. Holds the loop state, picks the next item and navigates the loop tab to `disneyplus.com/play/<id>`. |
 | `popup.*` | Playlist editor and settings. |
 | `shared/storage.js` | Storage helpers and Disney+ link parsing, shared by the service worker, the popup and the content script. |
@@ -114,6 +114,8 @@ A title counts as finished when any of these happens:
 - playback reaches the "N seconds before the end" threshold;
 - the Disney+ "Up next" overlay appears;
 - Disney+ navigates away by itself after more than 85% of the title was watched.
+
+The Disney+ stream doesn't expose its length and `video.currentTime` is offset from the title's timeline, so the position is read from the player's timeline slider whenever the controls are visible and followed through `video.currentTime` in between.
 
 Disney+ has no URL parameter to start from the beginning, so with **Always from the beginning** on, the loop tab seeks a resumed title back to 0 when it starts. It does so by clicking the start of the player's own timeline: setting `video.currentTime` directly stalls the Disney+ player.
 
@@ -129,6 +131,7 @@ All data (playlist, settings, loop state) lives in `chrome.storage.local`.
 
 - Disney+ can change its page structure at any time. Video end detection is based on the standard `<video>` element and should keep working. Title detection and the "Up next" detection use Disney+-specific markup and may break.
 - Only player links (`/play/<id>`) can be added; series and movie pages can't.
+- Disney+ pauses playback while its tab is in the background, so keep the loop tab visible (e.g. in its own window or fullscreen).
 - Disney+ doesn't support playback in mobile browsers, and mobile Chrome doesn't support extensions, so this is desktop only.
 
 ## Contributing

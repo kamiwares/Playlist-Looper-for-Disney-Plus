@@ -79,21 +79,9 @@
     toast.remove();
   }
 
-  // Decisions only (not per tick), so a bug report can show why the loop did something.
-  // Also kept in the tab's sessionStorage (survives reloads):
-  // copy(sessionStorage.getItem('dlp-log')) in the console copies it.
-  const LOG_KEY = 'dlp-log';
-  const LOG_LINES = 200;
+  // Loop decisions only (not per tick), so a bug report can show why something happened.
   function log(...args) {
     console.info('[Playlist Looper]', ...args);
-    try {
-      const text = args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
-      const lines = (sessionStorage.getItem(LOG_KEY) || '').split('\n').filter(Boolean).slice(1 - LOG_LINES);
-      lines.push(`${new Date().toISOString().slice(11, 19)} ${text}`);
-      sessionStorage.setItem(LOG_KEY, lines.join('\n'));
-    } catch {
-      // storage full or blocked: console only
-    }
   }
 
   function send(msg) {
@@ -166,9 +154,9 @@
     return videos.reduce((a, b) => (area(b) > area(a) ? b : a));
   }
 
-  function sliderValue(slider, attr) {
-    const n = Number(slider?.getAttribute(attr));
-    return slider?.hasAttribute(attr) && Number.isFinite(n) ? n : null;
+  function sliderValue(el, attr) {
+    const n = Number(el?.getAttribute(attr));
+    return el?.hasAttribute(attr) && Number.isFinite(n) ? n : null;
   }
 
   // The slider is removed from the DOM while the controls are hidden; the deep scan
@@ -200,22 +188,22 @@
 
   // Click the very start of the timeline, like a user would; every other attempt uses
   // the Home key instead, in case the player ignores synthetic pointer events.
-  function seekToStart(slider, attempt) {
+  function seekToStart(el, attempt) {
     if (attempt % 2 === 0) {
-      const r = slider.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
       if (!r.width) return false;
       const at = { bubbles: true, composed: true, cancelable: true, clientX: r.left + 1, clientY: r.top + r.height / 2 };
       const ptr = { ...at, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0 };
-      slider.dispatchEvent(new PointerEvent('pointerdown', { ...ptr, buttons: 1 }));
-      slider.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0, buttons: 1 }));
-      slider.dispatchEvent(new PointerEvent('pointerup', { ...ptr, buttons: 0 }));
-      slider.dispatchEvent(new MouseEvent('mouseup', { ...at, button: 0, buttons: 0 }));
-      slider.dispatchEvent(new MouseEvent('click', { ...at, button: 0, buttons: 0 }));
+      el.dispatchEvent(new PointerEvent('pointerdown', { ...ptr, buttons: 1 }));
+      el.dispatchEvent(new MouseEvent('mousedown', { ...at, button: 0, buttons: 1 }));
+      el.dispatchEvent(new PointerEvent('pointerup', { ...ptr, buttons: 0 }));
+      el.dispatchEvent(new MouseEvent('mouseup', { ...at, button: 0, buttons: 0 }));
+      el.dispatchEvent(new MouseEvent('click', { ...at, button: 0, buttons: 0 }));
     } else {
-      slider.focus?.();
+      el.focus?.();
       const key = { key: 'Home', code: 'Home', keyCode: 36, bubbles: true, composed: true, cancelable: true };
-      slider.dispatchEvent(new KeyboardEvent('keydown', key));
-      slider.dispatchEvent(new KeyboardEvent('keyup', key));
+      el.dispatchEvent(new KeyboardEvent('keydown', key));
+      el.dispatchEvent(new KeyboardEvent('keyup', key));
     }
     return true;
   }
@@ -246,7 +234,6 @@
   }
 
   function onIdChange(prev, next) {
-    if (prev || next) log('item changed', { from: prev, to: next, loopTab: isLoopTabFor(next) });
     // Disney+ moved on by itself (autoplay or back to /browse) near the end: treat as ended.
     if (prev && next !== prev && maxRatio > 0.85 && endedSentFor !== prev) sendEnded(prev, 'navigated away');
     maxRatio = 0;
@@ -277,7 +264,6 @@
 
     if (started) return;
     if (watchedSeconds > 0.5) {
-      log('playback detected', { readyState: video?.readyState, duration: video?.duration, currentTime: video?.currentTime });
       started = true;
       sessionStorage.removeItem(retryKey(id));
       return;
@@ -361,8 +347,6 @@
     timeOffset = null;
     timelineTotal = null;
     if (!v) return;
-    const count = deepQueryAll(document, 'video').length;
-    log('watching video', { videosOnPage: count, inShadowDom: v.getRootNode() !== document, readyState: v.readyState, duration: v.duration });
     v.addEventListener('timeupdate', check);
     v.addEventListener('ended', () => {
       const id = currentId();
@@ -433,28 +417,6 @@
     send({ type: 'START', here: true });
   }
 
-  const STATUS_EVERY_MS = 10000;
-  let lastStatusAt = 0;
-
-  function logStatus(id) {
-    if (Date.now() - lastStatusAt < STATUS_EVERY_MS) return;
-    lastStatusAt = Date.now();
-    const s = getSlider();
-    const tl = video && timeline(video);
-    log('status', {
-      loopTab: isLoopTabFor(id),
-      videos: deepQueryAll(document, 'video').length,
-      readyState: video?.readyState,
-      paused: video?.paused,
-      currentTime: video && Math.round(video.currentTime),
-      duration: video?.duration,
-      slider: s ? `${sliderValue(s, 'aria-valuenow')}/${sliderValue(s, 'aria-valuemax')}` : null,
-      position: tl ? `${Math.round(tl.now)}/${Math.round(tl.total)}` : null,
-      watched: Math.round(watchedSeconds),
-      started,
-    });
-  }
-
   function tick() {
     if (!alive()) {
       teardown();
@@ -473,7 +435,6 @@
     if (id) {
       check();
       watchdog(id);
-      logStatus(id);
       maybeFixTitle(id);
     }
     updateUi();
@@ -626,7 +587,6 @@
     if (v !== video) attach(v);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
-  log('page loaded', location.pathname);
   timer = setInterval(tick, 1000);
   tick();
 })();
