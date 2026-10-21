@@ -1,4 +1,4 @@
-import { load, savePlaylist, updateSettings, parseDisneyId, placeholderTitle, PLACEHOLDER_PREFIX } from './shared/storage.js';
+import { load, savePlaylist, updateSettings, parseDisneyId, placeholderTitle, cleanTitle, PLACEHOLDER_PREFIX } from './shared/storage.js';
 import { t, localize } from './shared/i18n.js';
 import { setIcon, applyIcons } from './shared/icons.js';
 
@@ -50,7 +50,7 @@ function startEdit(li, i) {
     if (done) return;
     done = true;
     editing = false;
-    const title = input.value.trim();
+    const title = cleanTitle(input.value);
     if (save && title && title !== data.playlist[i].title) {
       const pl = [...data.playlist];
       pl[i] = { ...pl[i], title };
@@ -246,7 +246,7 @@ $('#import').addEventListener('click', async () => {
     const id = parseDisneyId(typeof entry === 'object' && entry ? entry.id : entry);
     if (!id || seen.has(id)) continue;
     seen.add(id);
-    const title = typeof entry?.title === 'string' && entry.title.trim() ? entry.title.trim() : placeholderTitle(id);
+    const title = (typeof entry?.title === 'string' && cleanTitle(entry.title)) || placeholderTitle(id);
     pl.push({ id, title, addedAt: Date.now() });
   }
   await savePlaylist(pl);

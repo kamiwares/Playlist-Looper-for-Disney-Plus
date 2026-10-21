@@ -1,8 +1,8 @@
-// Runs on all of disneyplus.com (an SPA), tracking URL changes and <video> swaps itself.
+// Runs on all of disneyplus.com (an SPA); tick() tracks URL changes and <video> swaps itself.
 // Content scripts can't use static imports, so shared modules load via import() (web-accessible).
 (async () => {
   const load = (file) => import(chrome.runtime.getURL(file));
-  const [{ t }, { setIcon }, { PLACEHOLDER_PREFIX, DEFAULT_SETTINGS, DEFAULT_STATE, parseDisneyId }] = await Promise.all([
+  const [{ t }, { setIcon }, { PLACEHOLDER_PREFIX, DEFAULT_SETTINGS, DEFAULT_STATE, parseDisneyId, cleanTitle }] = await Promise.all([
     load('shared/i18n.js'),
     load('shared/icons.js'),
     load('shared/storage.js'),
@@ -61,7 +61,6 @@
   let sliderScanAt = 0;
   const titleCache = {};
   let timer = null;
-  let observer = null;
   let dead = false;
 
   // After an extension reload this script is orphaned and sendMessage throws synchronously
@@ -74,7 +73,8 @@
     if (dead) return;
     dead = true;
     clearInterval(timer);
-    observer?.disconnect();
+    video?.removeEventListener('timeupdate', check);
+    video?.removeEventListener('ended', onEnded);
     root.remove();
     toast.remove();
   }
@@ -340,7 +340,13 @@
     else if (remaining > threshold + 5 && endedSentFor === id) endedSentFor = null; // seeked back
   }
 
+  function onEnded() {
+    if (watchedSeconds >= MIN_WATCHED_SECONDS) sendEnded(currentId(), 'ended event');
+  }
+
   function attach(v) {
+    video?.removeEventListener('timeupdate', check);
+    video?.removeEventListener('ended', onEnded);
     video = v;
     lastTime = null;
     sliderSeen = null;
@@ -348,14 +354,11 @@
     timelineTotal = null;
     if (!v) return;
     v.addEventListener('timeupdate', check);
-    v.addEventListener('ended', () => {
-      const id = currentId();
-      if (watchedSeconds >= MIN_WATCHED_SECONDS) sendEnded(id, 'ended event');
-    });
+    v.addEventListener('ended', onEnded);
   }
 
   async function maybeFixTitle(id) {
-    const title = readTitle();
+    const title = cleanTitle(readTitle());
     if (!title) return;
     titleCache[id] = title;
     const item = playlist.find((p) => p.id === id);
@@ -460,7 +463,8 @@
       icon.dataset.icon = iconName;
       setIcon(icon, iconName);
     }
-    el.querySelector('.dlp-label').textContent = text;
+    const label = el.querySelector('.dlp-label');
+    if (label.textContent !== text) label.textContent = text;
   }
 
   addBtn.addEventListener('click', async () => {
@@ -580,12 +584,6 @@
       sendResponse({ id, title: id ? readTitle() || titleCache[id] || null : null });
     }
   });
-
-  observer = new MutationObserver(() => {
-    if (video?.isConnected) return;
-    const v = findVideo();
-    if (v !== video) attach(v);
-  }).observe(document.documentElement, { childList: true, subtree: true });
 
   timer = setInterval(tick, 1000);
   tick();

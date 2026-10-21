@@ -6,7 +6,7 @@
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "permissions": ["storage"],
-  "host_permissions": ["*://*.disneyplus.com/*"],
+  "host_permissions": ["https://*.disneyplus.com/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -27,13 +27,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.disneyplus.com/*"],
+      "matches": ["https://*.disneyplus.com/*"],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     },
     {
-      "matches": ["*://*.disneyplus.com/*"],
+      "matches": ["https://*.disneyplus.com/*"],
       "js": ["autostart.js"],
       "run_at": "document_start"
     }
@@ -44,7 +44,7 @@
         "icons/fa/*.svg",
         "shared/*.js"
       ],
-      "matches": ["*://*.disneyplus.com/*"]
+      "matches": ["https://*.disneyplus.com/*"]
     }
   ]
 }

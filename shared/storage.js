@@ -64,6 +64,13 @@ export function watchUrl(id) {
   return `https://www.disneyplus.com/play/${id}`;
 }
 
+// Titles come from the Disney+ page or user input; keep stored ones short.
+const MAX_TITLE_LENGTH = 200;
+
+export function cleanTitle(title) {
+  return String(title ?? '').trim().slice(0, MAX_TITLE_LENGTH);
+}
+
 export function placeholderTitle(id) {
   return `${PLACEHOLDER_PREFIX}${id.slice(0, 8)}`;
 }
