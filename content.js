@@ -384,6 +384,8 @@
   const AFTER_PROFILE_MS = 2500; // let Disney+ switch profiles once the picker is gone
   const PROFILE_SWITCH_MAX_MS = 15000; // start anyway if the picker never goes away
   const CLICKABLE = 'a, button, [role="link"], [role="button"], [tabindex]';
+  // The "Who's watching?" screen; the profile name alone also shows in the page header.
+  const PROFILE_PICKER_SELECTOR = '[data-testid="profiles-wrapper"]';
   const autostartAt = Date.now();
   let profileClickedAt = 0;
   let pickerGoneAt = 0;
@@ -428,10 +430,17 @@
     return null;
   }
 
+  function pickerVisible() {
+    const el = deepQuery(document, PROFILE_PICKER_SELECTOR);
+    return !!el && isVisible(el);
+  }
+
   function startFromAutostart(reason) {
     log(`autostart: starting the loop (${reason})`);
     sessionStorage.removeItem(AUTOSTART_KEY);
-    send({ type: 'START', here: true });
+    send({ type: 'START', here: true }).then((r) => {
+      if (r?.ok === false) log('autostart: start failed:', r.error);
+    });
   }
 
   function handleAutostart() {
@@ -459,7 +468,7 @@
 
     // Profile clicked (here or before a reload): wait until the picker is gone, then a bit more.
     if (!profileClickedAt) profileClickedAt = Date.now();
-    if (findProfile(name)) {
+    if (pickerVisible()) {
       pickerGoneAt = 0;
       if (Date.now() - profileClickedAt < PROFILE_SWITCH_MAX_MS) return;
       return startFromAutostart('profile picker still visible');
