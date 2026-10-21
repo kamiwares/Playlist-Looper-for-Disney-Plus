@@ -380,44 +380,93 @@
   // Marker set by autostart.js; 'clicked' means the profile was already picked
   // (Disney+ may have reloaded). Cleared only when the loop starts.
   const AUTOSTART_KEY = 'dlp-autostart';
-  const PROFILE_WAIT_MS = 8000; // wait for "Who's watching?"
-  const AFTER_PROFILE_MS = 3000; // let Disney+ switch profiles
+  const PROFILE_WAIT_MS = 15000; // wait for "Who's watching?" (Disney+ loads slowly)
+  const AFTER_PROFILE_MS = 2500; // let Disney+ switch profiles once the picker is gone
+  const PROFILE_SWITCH_MAX_MS = 15000; // start anyway if the picker never goes away
+  const CLICKABLE = 'a, button, [role="link"], [role="button"], [tabindex]';
   const autostartAt = Date.now();
   let profileClickedAt = 0;
+  let pickerGoneAt = 0;
+  let autostartLogged = false;
 
   function isVisible(el) {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
   }
 
-  // Match visible elements by name rather than Disney+ CSS classes (they change often);
-  // isVisible() skips the hidden account menu.
-  function findProfile(name) {
-    const target = name.toLocaleLowerCase();
-    for (const el of document.querySelectorAll('a, button, [role="link"], [role="button"], span, p, h3, div')) {
-      if (el.children.length > 2 || el.textContent.trim().toLocaleLowerCase() !== target || !isVisible(el)) continue;
-      return el.closest('a, button, [role="link"], [role="button"], [tabindex]') || el;
+  function normalize(text) {
+    return String(text ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+  }
+
+  // closest() that also climbs out of shadow roots.
+  function closestDeep(el, selector) {
+    for (let node = el; node; node = node.parentElement || node.getRootNode().host) {
+      if (node.matches?.(selector)) return node;
     }
     return null;
+  }
+
+  function matchesName(el, target, withText) {
+    const texts = [el.getAttribute('aria-label'), el.getAttribute('alt'), el.getAttribute('title')];
+    if (withText) texts.push(el.textContent);
+    return texts.some((x) => normalize(x) === target);
+  }
+
+  // Match visible elements by name (text, aria-label, or the avatar's alt/title) rather than
+  // Disney+ CSS classes (they change often), also inside open shadow roots;
+  // isVisible() skips the hidden account menu.
+  function findProfile(name) {
+    const target = normalize(name);
+    // The clickable tile itself first: Disney+ wraps it in a non-clickable <div> with the
+    // same text, and a click on that wrapper never reaches the tile's handler.
+    for (const el of deepQueryAll(document, CLICKABLE)) {
+      if (matchesName(el, target, true) && isVisible(el)) return el;
+    }
+    for (const el of deepQueryAll(document, '*')) {
+      if (matchesName(el, target, el.children.length <= 2) && isVisible(el)) return closestDeep(el, CLICKABLE) || el;
+    }
+    return null;
+  }
+
+  function startFromAutostart(reason) {
+    log(`autostart: starting the loop (${reason})`);
+    sessionStorage.removeItem(AUTOSTART_KEY);
+    send({ type: 'START', here: true });
   }
 
   function handleAutostart() {
     const flag = sessionStorage.getItem(AUTOSTART_KEY);
     if (!flag || !settingsLoaded) return;
     const name = String(settings.autoProfile || '').trim();
-    if (name && flag !== 'clicked') {
+    if (!name) return startFromAutostart('no profile set');
+
+    if (flag !== 'clicked') {
+      if (!autostartLogged) {
+        autostartLogged = true;
+        log(`autostart: looking for profile "${name}"`);
+      }
       const el = findProfile(name);
       if (el) {
+        log('autostart: clicking profile', el.tagName.toLowerCase(), el.getAttribute('aria-label') || '');
         el.click();
         sessionStorage.setItem(AUTOSTART_KEY, 'clicked');
         profileClickedAt = Date.now();
         return;
       }
       if (Date.now() - autostartAt < PROFILE_WAIT_MS) return;
+      return startFromAutostart(`profile "${name}" not found in ${PROFILE_WAIT_MS / 1000} s`);
     }
-    if (profileClickedAt && Date.now() - profileClickedAt < AFTER_PROFILE_MS) return;
-    sessionStorage.removeItem(AUTOSTART_KEY);
-    send({ type: 'START', here: true });
+
+    // Profile clicked (here or before a reload): wait until the picker is gone, then a bit more.
+    if (!profileClickedAt) profileClickedAt = Date.now();
+    if (findProfile(name)) {
+      pickerGoneAt = 0;
+      if (Date.now() - profileClickedAt < PROFILE_SWITCH_MAX_MS) return;
+      return startFromAutostart('profile picker still visible');
+    }
+    if (!pickerGoneAt) pickerGoneAt = Date.now();
+    if (Date.now() - pickerGoneAt < AFTER_PROFILE_MS) return;
+    startFromAutostart('profile selected');
   }
 
   function tick() {
