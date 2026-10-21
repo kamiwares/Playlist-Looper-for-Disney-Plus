@@ -406,16 +406,24 @@
     return null;
   }
 
+  function matchesName(el, target, withText) {
+    const texts = [el.getAttribute('aria-label'), el.getAttribute('alt'), el.getAttribute('title')];
+    if (withText) texts.push(el.textContent);
+    return texts.some((x) => normalize(x) === target);
+  }
+
   // Match visible elements by name (text, aria-label, or the avatar's alt/title) rather than
   // Disney+ CSS classes (they change often), also inside open shadow roots;
   // isVisible() skips the hidden account menu.
   function findProfile(name) {
     const target = normalize(name);
+    // The clickable tile itself first: Disney+ wraps it in a non-clickable <div> with the
+    // same text, and a click on that wrapper never reaches the tile's handler.
+    for (const el of deepQueryAll(document, CLICKABLE)) {
+      if (matchesName(el, target, true) && isVisible(el)) return el;
+    }
     for (const el of deepQueryAll(document, '*')) {
-      const texts = [el.getAttribute('aria-label'), el.getAttribute('alt'), el.getAttribute('title')];
-      if (el.children.length <= 2) texts.push(el.textContent);
-      if (!texts.some((x) => normalize(x) === target) || !isVisible(el)) continue;
-      return closestDeep(el, CLICKABLE) || el;
+      if (matchesName(el, target, el.children.length <= 2) && isVisible(el)) return closestDeep(el, CLICKABLE) || el;
     }
     return null;
   }
