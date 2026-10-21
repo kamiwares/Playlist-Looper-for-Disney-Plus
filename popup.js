@@ -1,4 +1,4 @@
-import { load, savePlaylist, updateSettings, parseNetflixId, placeholderTitle, PLACEHOLDER_PREFIX } from './shared/storage.js';
+import { load, savePlaylist, updateSettings, parseDisneyId, placeholderTitle, cleanTitle, PLACEHOLDER_PREFIX } from './shared/storage.js';
 import { t, localize } from './shared/i18n.js';
 import { setIcon, applyIcons } from './shared/icons.js';
 
@@ -8,7 +8,7 @@ const tpl = $('#item-tpl');
 const statusEl = $('#status');
 
 let data = { playlist: [], settings: {}, state: {} };
-let activeTab = null; // active tab, if it's a Netflix player
+let activeTab = null; // active tab, if it's a Disney+ player
 let editing = false;
 let dragFrom = null;
 let statusTimer = null;
@@ -50,7 +50,7 @@ function startEdit(li, i) {
     if (done) return;
     done = true;
     editing = false;
-    const title = input.value.trim();
+    const title = cleanTitle(input.value);
     if (save && title && title !== data.playlist[i].title) {
       const pl = [...data.playlist];
       pl[i] = { ...pl[i], title };
@@ -149,11 +149,12 @@ function render() {
   $('#loopMode').value = settings.loopMode;
   $('#shuffle').checked = settings.shuffle;
   $('#fullscreen').checked = settings.fullscreen;
+  $('#startOver').checked = settings.startOver;
   if (document.activeElement !== $('#creditsOffset')) $('#creditsOffset').value = settings.creditsOffset;
   if (document.activeElement !== $('#autoProfile')) $('#autoProfile').value = settings.autoProfile;
 
   const addCurrent = $('#add-current');
-  const currentId = activeTab ? parseNetflixId(activeTab.url) : null;
+  const currentId = activeTab ? parseDisneyId(activeTab.url) : null;
   const already = currentId && playlist.some((p) => p.id === currentId);
   addCurrent.disabled = !currentId || already;
   addCurrent.querySelector('.label').textContent = t(already ? 'addCurrentDone' : 'addCurrent');
@@ -179,7 +180,7 @@ $('#next').addEventListener('click', () => send({ type: 'NEXT' }));
 $('#prev').addEventListener('click', () => send({ type: 'PREV' }));
 
 $('#add-current').addEventListener('click', async () => {
-  const id = parseNetflixId(activeTab?.url);
+  const id = parseDisneyId(activeTab?.url);
   if (!id) return;
   let title = null;
   try {
@@ -194,7 +195,7 @@ $('#add-current').addEventListener('click', async () => {
 $('#add-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = $('#add-input');
-  const id = parseNetflixId(input.value);
+  const id = parseDisneyId(input.value);
   if (!id) {
     setStatus(t('statusBadLink'), true);
     return;
@@ -206,6 +207,7 @@ $('#add-form').addEventListener('submit', async (e) => {
 $('#loopMode').addEventListener('change', (e) => updateSettings({ loopMode: e.target.value }));
 $('#shuffle').addEventListener('change', (e) => updateSettings({ shuffle: e.target.checked }));
 $('#fullscreen').addEventListener('change', (e) => updateSettings({ fullscreen: e.target.checked }));
+$('#startOver').addEventListener('change', (e) => updateSettings({ startOver: e.target.checked }));
 let profileTimer = null;
 $('#autoProfile').addEventListener('input', (e) => {
   // Debounced, so the value survives closing the popup.
@@ -241,10 +243,10 @@ $('#import').addEventListener('click', async () => {
   const seen = new Set();
   const pl = [];
   for (const entry of parsed) {
-    const id = parseNetflixId(typeof entry === 'object' && entry ? entry.id : entry);
+    const id = parseDisneyId(typeof entry === 'object' && entry ? entry.id : entry);
     if (!id || seen.has(id)) continue;
     seen.add(id);
-    const title = typeof entry?.title === 'string' && entry.title.trim() ? entry.title.trim() : placeholderTitle(id);
+    const title = (typeof entry?.title === 'string' && cleanTitle(entry.title)) || placeholderTitle(id);
     pl.push({ id, title, addedAt: Date.now() });
   }
   await savePlaylist(pl);
@@ -279,6 +281,6 @@ applyIcons(tpl.content);
 
 (async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.url && /^https:\/\/www\.netflix\.com\/watch\/\d+/.test(tab.url)) activeTab = tab;
+  if (tab?.url && /^https:\/\/[\w.-]*disneyplus\.com\//.test(tab.url) && parseDisneyId(tab.url)) activeTab = tab;
   await refresh();
 })();

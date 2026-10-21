@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS = {
   creditsOffset: 0, // seconds before the end to move on
   fullscreen: false,
   autoProfile: '', // profile picked on #autostart
+  startOver: true, // play each item from the beginning instead of resuming
 };
 
 export const DEFAULT_STATE = {
@@ -18,7 +19,7 @@ export const DEFAULT_STATE = {
   fullscreenPaused: false, // user left fullscreen: don't re-enter until the next Start
 };
 
-export const PLACEHOLDER_PREFIX = 'Netflix #';
+export const PLACEHOLDER_PREFIX = 'Disney+ #';
 
 export async function load() {
   const d = await chrome.storage.local.get(['playlist', 'settings', 'state']);
@@ -47,18 +48,29 @@ export async function updateState(patch) {
   return next;
 }
 
-// Accepts /watch/<id>, /title/<id>, ?jbv=<id> or a bare ID.
-export function parseNetflixId(input) {
+// Accepts /play/<id>, /video/<id> (with an optional /<locale>/ prefix) or a bare ID.
+// Disney+ IDs are UUIDs, older links used shorter alphanumeric IDs.
+const ID = '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[A-Za-z0-9]{6,})';
+const LINK_RE = new RegExp(`/(?:play|video)/${ID}(?:[/?#]|$)`, 'i');
+const BARE_RE = new RegExp(`^${ID}$`, 'i');
+
+export function parseDisneyId(input) {
   const s = String(input ?? '').trim();
-  const m = s.match(/\/watch\/(\d+)/) || s.match(/\/title\/(\d+)/) || s.match(/[?&]jbv=(\d+)/) || s.match(/^(\d+)$/);
+  const m = s.match(LINK_RE) || s.match(BARE_RE);
   return m ? m[1] : null;
 }
 
-// t=0 starts from the beginning instead of resuming.
 export function watchUrl(id) {
-  return `https://www.netflix.com/watch/${id}?t=0`;
+  return `https://www.disneyplus.com/play/${id}`;
+}
+
+// Titles come from the Disney+ page or user input; keep stored ones short.
+const MAX_TITLE_LENGTH = 200;
+
+export function cleanTitle(title) {
+  return String(title ?? '').trim().slice(0, MAX_TITLE_LENGTH);
 }
 
 export function placeholderTitle(id) {
-  return `${PLACEHOLDER_PREFIX}${id}`;
+  return `${PLACEHOLDER_PREFIX}${id.slice(0, 8)}`;
 }

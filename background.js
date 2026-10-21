@@ -1,4 +1,4 @@
-import { load, savePlaylist, updateState, watchUrl, placeholderTitle } from './shared/storage.js';
+import { load, savePlaylist, updateState, watchUrl, placeholderTitle, parseDisneyId, cleanTitle } from './shared/storage.js';
 import { t } from './shared/i18n.js';
 
 // Debounces duplicate end signals.
@@ -111,10 +111,12 @@ async function step(direction) {
   return { ok: true, index: next };
 }
 
-async function addItem(id, title) {
+async function addItem(rawId, title) {
+  const id = parseDisneyId(rawId);
+  if (!id) return { ok: false, error: t('statusBadLink') };
   const { playlist } = await load();
   if (playlist.some((p) => p.id === id)) return { ok: false, error: t('errDuplicate') };
-  playlist.push({ id, title: title || placeholderTitle(id), addedAt: Date.now() });
+  playlist.push({ id, title: cleanTitle(title) || placeholderTitle(id), addedAt: Date.now() });
   await savePlaylist(playlist);
   return { ok: true };
 }
@@ -125,7 +127,7 @@ async function handle(msg, sender) {
       return { tabId: sender.tab?.id ?? null };
 
     case 'ADD':
-      return addItem(String(msg.id), msg.title);
+      return addItem(msg.id, msg.title);
 
     case 'START': {
       const { playlist, state } = await load();
@@ -188,9 +190,8 @@ async function handle(msg, sender) {
 
     case 'LOAD_FAILED': {
       // Skip items that keep failing to load, even in 'one' mode.
-      const { state } = await load();
+      const { playlist, state } = await load();
       if (!state.active || sender.tab?.id !== state.tabId || msg.id !== state.currentId) return { ok: false };
-      const { playlist } = await load();
       const title = playlist.find((p) => p.id === msg.id)?.title || msg.id;
       await notify(state.tabId, t('noticeSkipped', title), 'triangle-exclamation');
       return step('next');
@@ -219,7 +220,7 @@ async function refreshBadge() {
   const i = playlist.findIndex((p) => p.id === state.currentId);
   const text = state.active && i !== -1 ? `${i + 1}/${playlist.length}` : '';
   await chrome.action.setBadgeText({ text });
-  await chrome.action.setBadgeBackgroundColor({ color: '#e50914' });
+  await chrome.action.setBadgeBackgroundColor({ color: '#0063e5' });
 }
 
 chrome.storage.onChanged.addListener(async (changes, area) => {
